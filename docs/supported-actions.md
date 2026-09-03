@@ -25,7 +25,7 @@ Generated 2026-09-03 from the tool registry. 44 tools.
 | `ae_markers` | edit | `list`, `add`, `add_bulk`, `update`, `remove`, `clear` | Comp or layer markers. list; add one {time, comment, duration, label, chapter, url}; add_bulk many; update by index or time; remove by index or time; clear all. Target a layer by passing layer, otherwise the comp marker  |
 | `ae_masks` | edit | `list`, `add`, `update`, `remove` | Layer masks. list; add a mask from shape {rect:[x,y,w,h]} \| {ellipse:[cx,cy,rx,ry]} \| {path:{vertices,inTangents,outTangents,closed}} with mode add\|subtract\|intersect\|lighten\|darken\|difference\|none, feather [x,y] |
 | `ae_mogrt` | export | `controllers`, `add`, `rename`, `set_template_name`, `remove`, `validate`, `export`, `open_panel` | Essential Graphics / Motion Graphics Templates. controllers: list the comp's EGP controllers. add: expose a layer property as a controller (name). rename; set_template_name; remove (by index); validate: checks controller |
-| `ae_precompose` | edit | — | Precompose layers into a new nested comp. move_all_attributes=true moves keyframes/effects into the precomp (only allowed for a single layer in newer AE); false leaves them on the new layer. |
+| `ae_precompose` | edit | — | Precompose layers into a new nested comp. move_all_attributes=true moves keyframes/effects into the precomp; false leaves them on the new layer. After Effects only allows false for a SINGLE layer (several layers always m |
 | `ae_project` | edit | `info`, `new`, `open`, `save`, `save_copy`, `close`, `set_settings` | Project lifecycle. info: summary (path, dirty, comps, missing footage). new: new empty project (fails if the current one is dirty unless force). open: open an .aep. save: save (optionally save-as to a new path). save_cop |
 | `ae_property_get` | inspect | `value`, `tree`, `search` | Read properties by matchName path. value: one property snapshot (value at time, keys, expression). tree: the property tree under a layer or a group path, to depth. search: find properties whose matchName or name matches  |
 | `ae_property_set` | edit | — | Set one or more property values statically (removes nothing; if the property has keyframes the value is written at time at or the comp time as a keyframe). Values are coerced: "#RRGGBB" for colors, "50%" -> 50, stringifi |
@@ -468,14 +468,14 @@ Essential Graphics / Motion Graphics Templates. controllers: list the comp's EGP
 
 ### ae_precompose
 
-Precompose layers into a new nested comp. move_all_attributes=true moves keyframes/effects into the precomp (only allowed for a single layer in newer AE); false leaves them on the new layer.
+Precompose layers into a new nested comp. move_all_attributes=true moves keyframes/effects into the precomp; false leaves them on the new layer. After Effects only allows false for a SINGLE layer (several layers always move their attributes), so the flag is forced to true when more than one layer is given.
 
 | Param | Type | Notes |
 |---|---|---|
 | `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
 | `layers` | array | One or more layer references. |
 | `name` | string | Name of the new precomp. |
-| `move_all_attributes` | boolean (optional) | Default true for a single layer, false otherwise. |
+| `move_all_attributes` | boolean (optional) | Single layer only (default true). Ignored (forced true) for several layers, as AE requires. |
 | `open_in_viewer` | boolean (optional) |  |
 
 ### ae_project

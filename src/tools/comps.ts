@@ -127,12 +127,12 @@ export function getCompTools(ctx: ToolContext): ToolRecord {
     },
 
     ae_precompose: {
-      description: "Precompose layers into a new nested comp. move_all_attributes=true moves keyframes/effects into the precomp (only allowed for a single layer in newer AE); false leaves them on the new layer.",
+      description: "Precompose layers into a new nested comp. move_all_attributes=true moves keyframes/effects into the precomp; false leaves them on the new layer. After Effects only allows false for a SINGLE layer (several layers always move their attributes), so the flag is forced to true when more than one layer is given.",
       parameters: {
         comp: compRef,
         layers: layerRefs,
         name: z.string().min(1).describe("Name of the new precomp."),
-        move_all_attributes: z.boolean().optional().describe("Default true for a single layer, false otherwise."),
+        move_all_attributes: z.boolean().optional().describe("Single layer only (default true). Ignored (forced true) for several layers, as AE requires."),
         open_in_viewer: z.boolean().optional(),
       },
       handler: safe(async (a: Record<string, unknown>) => {
@@ -141,7 +141,7 @@ export function getCompTools(ctx: ToolContext): ToolRecord {
           var c = __comp(a.comp);
           var ls = __layers(c, a.layers);
           var idx = __map(ls, function (l) { return l.index; });
-          var moveAll = a.move_all_attributes !== undefined ? a.move_all_attributes : (idx.length === 1);
+          var moveAll = idx.length > 1 ? true : (a.move_all_attributes !== undefined ? a.move_all_attributes : true);
           return __result(__mutate("Precompose", function () {
             var nc = c.layers.precompose(idx, a.name, moveAll);
             var newLayer = null;

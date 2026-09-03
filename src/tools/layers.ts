@@ -83,7 +83,8 @@ export function getLayerTools(ctx: ToolContext): ToolRecord {
                 var it = typeof a.item === "number" ? __itemById(a.item) : __itemByName(String(a.item));
                 if (!it) __fail("Item not found: " + a.item, "ITEM_NOT_FOUND");
                 if (a.kind === "comp" && !(it instanceof CompItem)) __fail("Item is not a comp", "BAD_ARG");
-                l = c.layers.add(it, a.duration);
+                // layers.add(item, undefined) throws "parameter 2 undefined": only pass duration when given.
+                l = (a.duration !== undefined && a.duration !== null) ? c.layers.add(it, a.duration) : c.layers.add(it);
                 break;
               case "shape":
                 l = c.layers.addShape();
