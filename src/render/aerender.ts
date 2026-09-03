@@ -6,7 +6,7 @@
  */
 import { spawn, execFile, type ChildProcess } from "node:child_process";
 import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -321,7 +321,7 @@ export function startJob(dataDir: string, spec: RenderJobSpec): RenderJob {
     if (job.state === "done" && job.spec.finalOutput) {
       try {
         const produced = resolveOutputPath(job.spec.output);
-        mkdirSync(job.spec.finalOutput.replace(/[\/][^\/]*$/, ""), { recursive: true });
+        mkdirSync(dirname(job.spec.finalOutput), { recursive: true });
         renameSync(produced, job.spec.finalOutput);
         job.spec.output = job.spec.finalOutput;
         refreshOutput(job);

@@ -175,8 +175,12 @@ export function getSilia2Tools(ctx: ToolContext): ToolRecord {
           if (!targets.length) return __error("No outro comps found (looked for /horizontal/ and /vertical/): " + __map(comps, function (c) { return c.name; }).join(", "), "COMP_NOT_FOUND");
           function inventory(c) { var out = []; for (var L = 1; L <= c.numLayers; L++) { var l = c.layer(L); var rec = { index: L, name: l.name, kind: __layerKind(l), enabled: l.enabled, inPoint: __round(l.inPoint), outPoint: __round(l.outPoint), missing: false }; try { if (__isAV(l) && l.source instanceof FootageItem && l.source.footageMissing) rec.missing = true; if (__isAV(l) && l.source instanceof CompItem) { for (var N = 1; N <= l.source.numLayers; N++) { var nl = l.source.layer(N); try { if (__isAV(nl) && nl.source instanceof FootageItem && nl.source.footageMissing) rec.nestedMissing = (rec.nestedMissing || 0) + 1; } catch (e1) {} } } } catch (e0) {} out.push(rec); } return out; }
           var missing = __missingFootage();
-          var plan = { aep: a.aep, workCopy: a.workCopy, missingFootage: missing.length, comps: __map(targets, function (t) { var inv = inventory(t.comp); return { key: t.key, name: t.comp.name, width: t.comp.width, height: t.comp.height, fps: __round(t.comp.frameRate, 3), duration: __round(t.comp.duration), layers: inv, willDisable: __map(__filterMissing(inv), function (x) { return x.name; }) }; }) };
-          function __filterMissing(inv) { var o = []; for (var m = 0; m < inv.length; m++) if ((inv[m].missing || inv[m].nestedMissing) && inv[m].enabled) o.push(inv[m]); return o; }
+          // Only layers whose OWN source is missing get disabled (a missing texture renders opaque
+          // white). Layers whose nested precomp contains missing footage (e.g. the vector logo
+          // precomp) are reported, not disabled: pass disable_layers to override.
+          var plan = { aep: a.aep, workCopy: a.workCopy, missingFootage: missing.length, comps: __map(targets, function (t) { var inv = inventory(t.comp); return { key: t.key, name: t.comp.name, width: t.comp.width, height: t.comp.height, fps: __round(t.comp.frameRate, 3), duration: __round(t.comp.duration), layers: inv, willDisable: __map(__filterMissing(inv), function (x) { return x.name; }), nestedMissingLayers: __map(__filterNested(inv), function (x) { return x.name + " (" + x.nestedMissing + " missing inside)"; }) }; }) };
+          function __filterMissing(inv) { var o = []; for (var m = 0; m < inv.length; m++) if (inv[m].missing && inv[m].enabled) o.push(inv[m]); return o; }
+          function __filterNested(inv) { var o = []; for (var m = 0; m < inv.length; m++) if (inv[m].nestedMissing && inv[m].enabled) o.push(inv[m]); return o; }
           if (a.plan) return __result(plan);
           // apply
           var applied = [];
@@ -191,7 +195,7 @@ export function getSilia2Tools(ctx: ToolContext): ToolRecord {
           return __result({ plan: plan, disabled: applied, saved: a.workCopy, targets: __map(targets, function (t) { return { key: t.key, name: t.comp.name, duration: __round(t.comp.duration), fps: __round(t.comp.frameRate, 3), width: t.comp.width, height: t.comp.height }; }) });
         `;
         // Opening the outro raises "missing effects" / "missing footage" dialogs; answer them.
-        const { result: r, dialogs } = await withAutoDialogs(runScript(ctx, script, { timeoutMs: 180_000, longRunning: true }));
+        const { result: r, dialogs } = await withAutoDialogs(runScript(ctx, script, { timeoutMs: 180_000, longRunning: true }), { allowEmptyText: true });
         if (r.success && dialogs.length) (r.data as Record<string, unknown>).dialogs = dialogs.map((x) => ({ text: x.text.slice(0, 200), acted: x.acted }));
         if (!r.success || a.action === "plan") return r;
         const d = r.data as { targets: Array<{ key: string; name: string; duration: number; fps: number; width: number; height: number }>; disabled: string[]; saved: string };

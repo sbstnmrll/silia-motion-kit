@@ -4,8 +4,15 @@
  * PowerShell/Win32 script. Windows only.
  */
 import { execFile } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderEnvironment } from "../render/aerender.js";
+
+/** MCP clients may start the server with a minimal env (no PATH to System32): use an absolute path. */
+function powershellExe(): string {
+  const env = renderEnvironment();
+  return join(env.SystemRoot ?? env.SYSTEMROOT ?? "C:\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = resolve(here, "../../scripts/ae-dialogs.ps1");
@@ -24,7 +31,7 @@ export interface DialogResult {
 
 function ps(args: string[]): Promise<string> {
   return new Promise((resolveP, reject) => {
-    execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", SCRIPT, ...args], { windowsHide: true, timeout: 20_000 }, (e, stdout, stderr) => {
+    execFile(powershellExe(), ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", SCRIPT, ...args], { windowsHide: true, timeout: 20_000, env: renderEnvironment() }, (e, stdout, stderr) => {
       if (e) reject(new Error(String(stderr || e.message)));
       else resolveP(String(stdout));
     });
@@ -33,7 +40,7 @@ function ps(args: string[]): Promise<string> {
 
 export async function findAfterFxPid(): Promise<number | null> {
   return new Promise((resolveP) => {
-    execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", "Get-Process AfterFX -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -First 1 -ExpandProperty Id"], { windowsHide: true, timeout: 15_000 }, (e, stdout) => {
+    execFile(powershellExe(), ["-NoProfile", "-NonInteractive", "-Command", "Get-Process AfterFX -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -First 1 -ExpandProperty Id"], { windowsHide: true, timeout: 15_000, env: renderEnvironment() }, (e, stdout) => {
       const n = parseInt(String(stdout).trim(), 10);
       resolveP(!e && Number.isFinite(n) ? n : null);
     });
@@ -70,11 +77,18 @@ export const AUTO_OK_PATTERNS: RegExp[] = [
  * While `work` runs, poll for AE dialogs; press OK on known-safe informational ones.
  * Returns the work result plus the dialogs seen. Never answers unknown dialogs.
  */
-export async function withAutoDialogs<T>(work: Promise<T>, options: { pollMs?: number; patterns?: RegExp[] } = {}): Promise<{ result: T; dialogs: AeDialog[] }> {
+export async function withAutoDialogs<T>(
+  work: Promise<T>,
+  options: { pollMs?: number; patterns?: RegExp[]; allowEmptyText?: boolean } = {},
+): Promise<{ result: T; dialogs: AeDialog[] }> {
   const seen: AeDialog[] = [];
   let done = false;
   const patterns = options.patterns ?? AUTO_OK_PATTERNS;
   const pid = await findAfterFxPid();
+  // Opening a project can raise dialogs whose text is not readable through WM_GETTEXT
+  // (custom controls). They are informational in that context; press Enter once they
+  // have been visible for two polls.
+  const emptySeen = new Map<number, number>();
   const poller = (async () => {
     while (!done) {
       await new Promise((r) => setTimeout(r, options.pollMs ?? 1000));
@@ -82,11 +96,19 @@ export async function withAutoDialogs<T>(work: Promise<T>, options: { pollMs?: n
       try {
         const r = await aeDialogs("list", undefined, pid);
         for (const d of r.dialogs) {
-          if (seen.some((s) => s.hwnd === d.hwnd)) continue;
-          seen.push(d);
+          if (seen.some((s) => s.hwnd === d.hwnd && s.acted)) continue;
+          if (!seen.some((s) => s.hwnd === d.hwnd)) seen.push(d);
+          const rec = seen.find((s) => s.hwnd === d.hwnd)!;
           if (patterns.some((re) => re.test(d.text))) {
             await aeDialogs("ok", d.hwnd, pid);
-            d.acted = "ok (auto)";
+            rec.acted = "ok (auto)";
+          } else if (options.allowEmptyText && !d.text.trim()) {
+            const n = (emptySeen.get(d.hwnd) ?? 0) + 1;
+            emptySeen.set(d.hwnd, n);
+            if (n >= 2) {
+              await aeDialogs("ok", d.hwnd, pid);
+              rec.acted = "ok (auto, untitled dialog during project open)";
+            }
           }
         }
       } catch {

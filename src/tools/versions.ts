@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { existsSync, copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { argsVar, jsLiteral } from "../bridge/index.js";
 import { err, ok, runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
 import { getJob, startJob } from "../render/aerender.js";
@@ -72,7 +72,7 @@ export function getVersionTools(ctx: ToolContext): ToolRecord {
           }
           return __result({ project: p.file.fsName, comp: __compInfo(c), resolved: resolved, issues: issues, missingFootage: __missingFootage().length });
         `;
-        const { result: plan } = await withAutoDialogs(runScript(ctx, planScript, { timeoutMs: 120_000, longRunning: true }));
+        const { result: plan } = await withAutoDialogs(runScript(ctx, planScript, { timeoutMs: 120_000, longRunning: true }), { allowEmptyText: true });
         if (!plan.success) return plan;
         const pd = plan.data as { project: string; comp: Record<string, unknown>; resolved: unknown[]; issues: string[] };
         const fileIssues: string[] = [];
@@ -114,16 +114,16 @@ export function getVersionTools(ctx: ToolContext): ToolRecord {
             var cf = __file(a.copyPath); __ensureFolder(cf.parent.fsName); p.save(cf); app.open(__file(a.template));
             return __result({ copy: cf.fsName, applied: applied });
           `;
-          const { result: r } = await withAutoDialogs(runScript(ctx, applyScript, { timeoutMs: 180_000, longRunning: true }));
+          const { result: r } = await withAutoDialogs(runScript(ctx, applyScript, { timeoutMs: 180_000, longRunning: true }), { allowEmptyText: true });
           if (!r.success) return err(`variant ${String(v.id)}: ${r.error}`, r.code);
           const renderCopy = copyPath.replace(/\.aep$/, "_aerender.aep");
           copyFileSync(copyPath, renderCopy);
           const output = join(spec.output.dir, String(fill(nameTemplate, v)));
           // Concurrent aerenders of the same comp into one folder collide on AE temp files: render
           // into a private folder per job and move the result to the final path when done.
-          const privateDir = join(ctx.config.dataDir, "jobs", `${runId}_${String(v.id).replace(/[^w-]+/g, "_")}_out`);
+          const privateDir = join(ctx.config.dataDir, "jobs", `${runId}_${String(v.id).replace(/[^\w-]+/g, "_")}_out`);
           mkdirSync(privateDir, { recursive: true });
-          const job = startJob(ctx.config.dataDir, { project: renderCopy, comp: spec.template.comp, output: join(privateDir, output.split(/[\/]/).pop() ?? "out.mp4"), finalOutput: output, rsTemplate: spec.output.rs_template ?? "Best Settings", omTemplate: spec.output.om_template ?? "H.264 - Match Render Settings - 40 Mbps", meta: { runId, variant: v.id } });
+          const job = startJob(ctx.config.dataDir, { project: renderCopy, comp: spec.template.comp, output: join(privateDir, basename(output)), finalOutput: output, rsTemplate: spec.output.rs_template ?? "Best Settings", omTemplate: spec.output.om_template ?? "H.264 - Match Render Settings - 40 Mbps", meta: { runId, variant: v.id } });
           jobs.push({ variant: String(v.id), jobId: job.id, output, copy: copyPath });
           // Throttle: wait while more than `parallel` jobs are running.
           const parallel = (a.parallel as number) ?? 2;
