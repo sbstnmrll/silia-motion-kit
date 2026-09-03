@@ -62,7 +62,7 @@ export function getVersionTools(ctx: ToolContext): ToolRecord {
           var issues = [], resolved = [];
           for (var i = 0; i < a.assets.length; i++) {
             var as = a.assets[i]; var target = c; var lname = as.layer;
-            var m = /^comp:([^/]+)\\/(.+)$/.exec(as.layer); if (m) { try { target = __comp(m[1]); lname = m[2]; } catch (e0) { issues.push("Nested comp not found: " + m[1]); continue; } }
+            var m = /^comp:([^\\/]+)\\/(.+)$/.exec(as.layer); if (m) { try { target = __comp(m[1]); lname = m[2]; } catch (e0) { issues.push("Nested comp not found: " + m[1]); continue; } }
             var l = null; try { l = __layer(target, lname); } catch (e1) { issues.push("Layer not found: " + as.layer); continue; }
             var rec = { layer: as.layer, kind: __layerKind(l), type: as.type };
             if (as.type === "text" && !(l instanceof TextLayer)) issues.push(as.layer + " is not a text layer");
@@ -101,7 +101,7 @@ export function getVersionTools(ctx: ToolContext): ToolRecord {
             var c = __comp(a.comp); var applied = [];
             __mutate("Variant", function () {
               for (var i = 0; i < a.overrides.length; i++) {
-                var o = a.overrides[i]; var target = c; var lname = o.layer; var m = /^comp:([^/]+)\\/(.+)$/.exec(o.layer); if (m) { target = __comp(m[1]); lname = m[2]; }
+                var o = a.overrides[i]; var target = c; var lname = o.layer; var m = /^comp:([^\\/]+)\\/(.+)$/.exec(o.layer); if (m) { target = __comp(m[1]); lname = m[2]; }
                 var l = __layer(target, lname);
                 if (o.type === "text") { var dp = l.property("ADBE Text Properties").property("ADBE Text Document"); var d = dp.value; d.text = String(o.value); dp.setValue(d); applied.push({ layer: o.layer, text: String(o.value) }); }
                 else if (o.type === "toggle") { l.enabled = !!o.value && o.value !== "false" && o.value !== "0"; applied.push({ layer: o.layer, enabled: l.enabled }); }

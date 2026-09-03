@@ -211,7 +211,11 @@ function processOneCommand(cmdFileName) {
     );
   }, BUSY_MS);
 
-  var script = '$.evalFile(new File("' + toExtendScriptPath(claimedPath) + '"))';
+  // Wrap evalFile so syntax/runtime errors come back as an envelope instead of an empty string.
+  var script =
+    "(function () { try { var r = $.evalFile(new File(\"" + toExtendScriptPath(claimedPath) + "\")); " +
+    "if (r === undefined || r === null) return '{\"success\":false,\"code\":\"EMPTY_RESULT\",\"error\":\"Script evaluated to undefined: usually an ES3 syntax error in the command (reserved word, trailing comma, arrow function).\"}'; return r; } " +
+    "catch (e) { return '{\"success\":false,\"code\":\"SCRIPT_ERROR\",\"error\":' + JSON.stringify(String(e.message || e)) + ',\"line\":' + (e.line || 0) + '}'; } })()";
 
   cs.evalScript(script, function (result) {
     clearInterval(busyTimer);

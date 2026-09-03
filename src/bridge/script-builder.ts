@@ -16,14 +16,31 @@ const BLOCKED_PATTERNS: Array<{ re: RegExp; label: string }> = [
 // U+2028 / U+2029 are line terminators for the ES3 engine: never let them into a literal raw.
 const LINE_SEP = new RegExp(String.fromCharCode(0x2028), "g");
 const PARA_SEP = new RegExp(String.fromCharCode(0x2029), "g");
+
+// ES3 future-reserved words: using them as identifiers or object keys is a syntax error
+// that $.evalFile swallows silently (the command returns an empty result).
+const ES3_WORDS =
+  "abstract|boolean|byte|char|class|const|debugger|double|enum|export|extends|final|float|goto|implements|import|int|interface|long|native|package|private|protected|public|short|static|super|synchronized|throws|transient|volatile";
+export const ES3_RESERVED = new RegExp(`(?:[{,(]\\s*|\\bvar\\s+)(${ES3_WORDS})\\b\\s*[:=,)]`);
+
+// An unescaped "/" inside a regex character class terminates the literal in ES3.
+// Note: an unescaped "/" inside a regex character class also ends the literal in ES3
+// (write [^\/] not [^/]); it cannot be detected reliably without a tokenizer, so the
+// CEP executor reports evaluation errors instead (see cep-plugin/main.js).
+
 /**
  * Guard rail, not a sandbox: blocks the obvious ways a templated argument could
  * escalate into arbitrary code. Raw scripts (execute_extendscript) bypass the
- * pattern check but keep the size limit.
+ * pattern check but keep the size limit and the ES3 syntax checks.
  */
 export function validateScript(script: string, allowUnsafe = false): void {
   if (Buffer.byteLength(script, "utf-8") > MAX_SCRIPT_BYTES) {
     throw new Error(`Script exceeds ${MAX_SCRIPT_BYTES / 1024} KB size limit`);
+  }
+  const reserved = ES3_RESERVED.exec(script);
+  if (reserved) {
+    const line = script.slice(0, reserved.index).split(/\r?\n/).length;
+    throw new Error(`Script uses the ES3 reserved word "${reserved[1]}" as an identifier or object key (line ${line}); rename it.`);
   }
   if (allowUnsafe) return;
   for (const { re, label } of BLOCKED_PATTERNS) {

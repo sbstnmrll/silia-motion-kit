@@ -144,8 +144,10 @@ export function getSiliaTools(ctx: ToolContext): ToolRecord {
             nameL.property("ADBE Transform Group").property("ADBE Position").setValue([left + padX - r1.left, top + padY - r1.top]);
             if (roleL) roleL.property("ADBE Transform Group").property("ADBE Position").setValue([left + padX - r2.left, top + padY + r1.height + gap - r2.top]);
             var parts = [card, bar, nameL]; if (roleL) parts.push(roleL);
-            for (var i = 0; i < parts.length; i++) { parts[i].parent = ctrl; parts[i].inPoint = t0; parts[i].outPoint = t1; parts[i].moveBefore(ctrl); }
-            ctrl.inPoint = t0; ctrl.outPoint = t1; ctrl.moveBefore(card);
+            // Stack: text above bar above card. moveBefore(ctrl) puts each layer directly above the
+            // null, so move them in reverse order (the first moved ends up highest).
+            for (var i = parts.length - 1; i >= 0; i--) { parts[i].parent = ctrl; parts[i].inPoint = t0; parts[i].outPoint = t1; parts[i].moveBefore(ctrl); }
+            ctrl.inPoint = t0; ctrl.outPoint = t1; ctrl.moveBefore(parts[parts.length - 1]);
             // entry / exit on the control null: opacity is per layer, so animate each part
             var entry = a.entry || "confirmed"; var exit = a.exit || "confirmed";
             for (var j = 0; j < parts.length; j++) {
@@ -214,7 +216,7 @@ export function getSiliaTools(ctx: ToolContext): ToolRecord {
               var props = an.property("ADBE Text Animator Properties");
               var po = props.addProperty("ADBE Text Opacity"); po.setValue(0);
               var pp = props.addProperty("ADBE Text Position 3D"); pp.setValue([0, Math.round(a.ls.rise ? a.ls.rise : 18 * k), 0]);
-              var sel = an.property("ADBE Text Selectors").property(1) || an.property("ADBE Text Selectors").addProperty("ADBE Text Selector");
+              var sels = an.property("ADBE Text Selectors"); var sel = sels.numProperties ? sels.property(1) : sels.addProperty("ADBE Text Selector");
               sel.property("ADBE Text Percent Start").setValue(0); sel.property("ADBE Text Percent End").setValue(100);
               var adv = sel.property("ADBE Text Range Advanced"); adv.property("ADBE Text Range Type2").setValue(1); adv.property("ADBE Text Range Shape").setValue(2); adv.property("ADBE Text Levels Max Ease").setValue(40);
               var units = a.text.replace(/\\s/g, "").length; var total = a.ls.duration + a.ls.perLetter * Math.max(0, units - 1);
@@ -261,13 +263,14 @@ export function getSiliaTools(ctx: ToolContext): ToolRecord {
           var c = __comp(a.comp); var l = __layer(c, a.layer);
           var amt = a.amount_pct || 5; var pre = a.pre_scale || 2;
           var t0 = a.in_time !== undefined ? a.in_time : l.inPoint; var t1 = a.duration ? t0 + a.duration : l.outPoint;
+          var lname = l.name, lindex = l.index;
           return __result(__mutate("Silia 2.5D push", function () {
-            // precompose at higher resolution so the push moves in subpixels
-            var pc = c.layers.precompose([l.index], l.name + " (push 2x)", true);
+            // precompose at higher resolution so the push moves in subpixels (the original layer object is invalid afterwards)
+            var pc = c.layers.precompose([lindex], lname + " (push 2x)", true);
             pc.width = Math.round(c.width * pre); pc.height = Math.round(c.height * pre);
             var inner = pc.layer(1); var it = inner.property("ADBE Transform Group"); it.property("ADBE Position").setValue([pc.width / 2, pc.height / 2]); var isc = it.property("ADBE Scale").value; it.property("ADBE Scale").setValue([isc[0] * pre, isc[1] * pre, 100]);
             var newL = null; for (var i = 1; i <= c.numLayers; i++) if (c.layer(i).source === pc) newL = c.layer(i);
-            newL.collapseTransformation = true; newL.name = l.name + " push";
+            newL.collapseTransformation = true; newL.name = lname + " push";
             var tg = newL.property("ADBE Transform Group"); tg.property("ADBE Scale").setValue([100 / pre, 100 / pre, 100]);
             var anchor = a.anchor || [c.width / 2, c.height / 2];
             tg.property("ADBE Anchor Point").setValue([anchor[0] * pre, anchor[1] * pre]); tg.property("ADBE Position").setValue([anchor[0], anchor[1]]);
@@ -306,15 +309,17 @@ export function getSiliaTools(ctx: ToolContext): ToolRecord {
             var fx = adj.property("ADBE Effect Parade"); var added = [];
             function add(mn, params) { var e = fx.addProperty(mn); for (var k in params) if (params.hasOwnProperty(k)) { var p = __childProp(e, k); if (p) p.setValue(__coerce(p, params[k])); } added.push(__effectInfo(e, false)); return e; }
             var look = a.look || "retro_90s";
+            // Parameters are addressed by display name (resolved via __childProp fallback):
+            // Levels' numbered matchNames are channel groups and cannot take values directly.
             if (look === "retro_90s") {
-              add("ADBE Pro Levels2", { "ADBE Pro Levels2-0003": 0.0, "ADBE Pro Levels2-0004": 0.92, "ADBE Pro Levels2-0006": 0.08, "ADBE Pro Levels2-0007": 0.9 });
-              add("ADBE HUE SATURATION", { "ADBE HUE SATURATION-0003": -45 });
-              add("ADBE Tint", { "ADBE Tint-0001": [0.16, 0.12, 0.09, 1], "ADBE Tint-0002": [0.98, 0.94, 0.86, 1], "ADBE Tint-0003": 35 });
-              add("ADBE Noise", { "ADBE Noise-0001": 6, "ADBE Noise-0002": 0 });
+              add("ADBE Exposure2", { "Offset": 0.035, "Gamma Correction": 1.05 });
+              add("ADBE HUE SATURATION", { "Master Saturation": -45 });
+              add("ADBE Tint", { "Map Black To": [0.16, 0.12, 0.09, 1], "Map White To": [0.98, 0.94, 0.86, 1], "Amount to Tint": 35 });
+              add("ADBE Noise", { "Amount of Noise": 6, "Use Color Noise": 0 });
             } else if (look === "mono") {
-              add("ADBE Tint", { "ADBE Tint-0003": 100 });
+              add("ADBE Tint", { "Amount to Tint": 100 });
             } else {
-              add("ADBE Tritone", { "ADBE Tritone-0001": __color(a.lime, true), "ADBE Tritone-0002": [0.45, 0.5, 0.2, 1], "ADBE Tritone-0003": [0.04, 0.04, 0.04, 1] });
+              add("ADBE Tritone", { "Highlights": __color(a.lime, true), "Midtones": [0.45, 0.5, 0.2, 1], "Shadows": [0.04, 0.04, 0.04, 1] });
             }
             var op = adj.property("ADBE Transform Group").property("ADBE Opacity");
             __setKeys(op, [{ time: t0 + hold, value: strength }, { time: t0 + hold + diss, value: 0, ease: a.ease }]);

@@ -75,7 +75,10 @@ export function normaliseTranscript(input: unknown, options: { gapSec?: number; 
   // Flat words: detect ms vs s by magnitude.
   const rows = (data as Array<Record<string, unknown>>).map((r) => ({ text: String(r.text ?? r.word ?? r.w ?? "").trim(), start: Number(r.start ?? r.t), end: Number(r.end ?? r.start ?? r.t), speaker: r.speaker !== undefined ? String(r.speaker) : undefined })).filter((r) => r.text);
   const maxEnd = Math.max(...rows.map((r) => r.end));
-  const ms = maxEnd > 3600 * 2; // > 2 hours in seconds is implausible for these clips; treat as ms
+  // A spoken word never lasts > 5 s; if the median (end-start) does, the numbers are milliseconds.
+  const durations = rows.map((r) => r.end - r.start).filter((d) => d > 0).sort((x, y) => x - y);
+  const median = durations.length ? durations[Math.floor(durations.length / 2)] : 0;
+  const ms = median > 5 || maxEnd > 3600 * 2;
   const scale = ms ? 1 / 1000 : 1;
   const words: Array<Word & { speaker?: string }> = rows.map((r) => ({ w: r.text, start: r.start * scale, end: r.end * scale, speaker: r.speaker }));
   const turns: Turn[] = [];
