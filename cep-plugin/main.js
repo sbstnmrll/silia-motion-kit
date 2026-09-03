@@ -319,7 +319,17 @@ function detectVersion(done) {
   log("Silia AE MCP bridge loaded (" + source + ", engine " + ENGINE_ID + ")");
   setStatus("waiting", "Starting…", "Detecting After Effects version");
 
-  detectVersion(function (v) {
+  // aerender / the render engine also loads CEP extensions. Never bridge there: it
+  // would execute commands against the render project instead of the user session.
+  cs.evalScript("(function(){ try { return app.isRenderEngine ? \"1\" : \"0\"; } catch (e) { return \"0\"; } })()", function (isRender) {
+    if (String(isRender) === "1") {
+      log("Render engine detected (aerender); bridge disabled in this instance.");
+      setStatus("", "Disabled", "Render engine instance");
+      return;
+    }
+    startAfterVersion();
+  });
+  function startAfterVersion() { detectVersion(function (v) {
     appVersion = v;
     appMajor = parseInt(v, 10) || 0;
     tempDir = path.join(bridgeRoot, "v" + appMajor);
@@ -331,7 +341,7 @@ function detectVersion(done) {
     log("After Effects " + appVersion + " → " + tempDir);
     // Always auto-start: the headless instance has nobody to click Start.
     setTimeout(startBridge, 300);
-  });
+  }); }
 
   window.addEventListener("beforeunload", function () {
     removePresence();

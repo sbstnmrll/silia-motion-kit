@@ -1103,6 +1103,16 @@ function __saveFrame(comp, time, path, opts) {
     }
     try {
       comp.saveFrameToPng(t, file);
+      // The write is asynchronous: the PNG appears within ~50 ms and grows for ~100 ms
+      // more. Keep the temporary background/solo state until the size is stable.
+      var last = -1, stable = 0;
+      for (var w = 0; w < 100; w++) {
+        var chk = __file(file.fsName);
+        var len = chk.exists ? chk.length : -1;
+        if (len > 0 && len === last) { stable++; if (stable >= 2) break; } else stable = 0;
+        last = len;
+        $.sleep(50);
+      }
     } finally {
       __each(soloed, function (l) { l.solo = false; });
       __each(hidden, function (l) { l.enabled = true; });
@@ -1110,6 +1120,6 @@ function __saveFrame(comp, time, path, opts) {
     }
   });
   var written = __file(file.fsName);
-  if (!written.exists || written.length <= 0) __fail("saveFrameToPng reported no error but wrote nothing at " + file.fsName, "FRAME_NOT_WRITTEN");
+  if (!written.exists || written.length <= 0) __fail("saveFrameToPng reported no error but wrote nothing at " + file.fsName + " after 5 s", "FRAME_NOT_WRITTEN");
   return { path: written.fsName, bytes: written.length, time: __round(t), method: method, width: comp.width, height: comp.height };
 }
