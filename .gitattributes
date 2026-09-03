@@ -1,0 +1,12 @@
+*.aep binary
+*.aet binary
+*.ffx binary
+*.mogrt binary
+*.p12 binary
+*.zxp binary
+*.png binary
+*.jsx text eol=lf
+*.ts text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.ps1 text eol=crlf

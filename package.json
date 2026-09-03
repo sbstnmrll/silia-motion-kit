@@ -1,0 +1,51 @@
+{
+  "name": "@silia/ae-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Adobe After Effects: CEP file bridge, matchName-safe ExtendScript tools, aerender jobs, visual feedback, MOGRT handoff to Premiere, and the Silia motion layer.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ae-mcp": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/jsx/**",
+    "cep-plugin",
+    "scripts",
+    "presets",
+    "docs/supported-actions.md",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/copy-jsx.mjs",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run tests/unit",
+    "test:live": "cross-env AE_MCP_LIVE=1 vitest run tests/integration",
+    "docs:supported-actions": "node scripts/generate-supported-actions.mjs",
+    "install-cep": "node dist/index.js --install-cep",
+    "diagnose-cep": "node dist/index.js --diagnose-cep",
+    "doctor": "node dist/index.js --doctor"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "sharp": "^0.35.4",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "cross-env": "^10.1.0",
+    "types-for-adobe": "^7.2.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

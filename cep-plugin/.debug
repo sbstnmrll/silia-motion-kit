@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionList>
+  <Extension Id="com.silia.ae.mcp.panel">
+    <HostList>
+      <Host Name="AEFT" Port="8092"/>
+    </HostList>
+  </Extension>
+  <Extension Id="com.silia.ae.mcp.headless">
+    <HostList>
+      <Host Name="AEFT" Port="8093"/>
+    </HostList>
+  </Extension>
+</ExtensionList>
