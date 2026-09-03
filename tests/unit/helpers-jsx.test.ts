@@ -2,8 +2,9 @@
  * Runs the ES3 helper library inside node:vm with a stub After Effects DOM to
  * check envelopes, path resolution, coercion and ease arity without AE.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import vm from "node:vm";
 import { describe, expect, it, beforeAll } from "vitest";
 
@@ -224,6 +225,44 @@ describe("helpers.jsx (vm)", () => {
     expect(e.outInfluence).toBeCloseTo(21.5, 1);
     expect(e.inInfluence).toBeCloseTo(64.5, 1);
     expect(e.outSpeed).toBeCloseTo((0.61 / 0.215) * 100, 0);
+  });
+
+  it("named presets resolve through the bezier table (speed computed, silia. prefix accepted)", () => {
+    const r = run(`var o = __prop(layer, "opacity"); __setKeys(o, [{ time: 0, value: 0 }, { time: 1, value: 100 }]); [__applyEase(o, 1, "silia.power3_out"), __applyEase(o, 2, "Expo-Out")]`);
+    expect(r[0].preset).toBe("power3_out");
+    expect(r[0].outInfluence).toBe(21.5);
+    expect(r[0].outSpeed).toBeCloseTo((0.61 / 0.215) * 100, 0);
+    expect(r[1].preset).toBe("expo_out");
+    expect(r[1].inInfluence).toBe(78);
+    expect(r[1].inSpeed).toBe(0); // y2 = 1
+    expect(run("__EASE_PRESETS.linear")).toBeNull();
+    expect(run("__EASE_PRESETS.power3_out")).toEqual({ x1: 0.215, y1: 0.61, x2: 0.355, y2: 1 });
+  });
+
+  it("the build regenerates the __EASE_PRESETS block in dist from motion/eases", async () => {
+    const distHelpers = resolve(__dirname, "../../dist/jsx/helpers.jsx");
+    const distEases = resolve(__dirname, "../../dist/motion/eases.js");
+    if (!existsSync(distHelpers) || !existsSync(distEases)) return; // run npm run build first; nothing to check without dist
+    const text = readFileSync(distHelpers, "utf-8");
+    const start = text.indexOf("// @@EASE_PRESETS_START@@");
+    const end = text.indexOf("// @@EASE_PRESETS_END@@");
+    expect(start).toBeGreaterThan(0);
+    expect(end).toBeGreaterThan(start);
+    const block = text.slice(start, end);
+    expect(block).toMatch(/generated from src\/motion\/eases\.ts/);
+    expect(block).toMatch(/^\s+linear: null,?$/m);
+    const { EASES } = await import(pathToFileURL(distEases).href);
+    for (const [name, def] of Object.entries<any>(EASES)) {
+      if (name === "linear") continue;
+      const [x1, y1, x2, y2] = def.bezier;
+      expect(block, name).toContain(`  ${name}: { x1: ${x1}, y1: ${y1}, x2: ${x2}, y2: ${y2} }`);
+    }
+    expect(block).not.toMatch(/,\s*\n\s*\}/); // no trailing commas (ES3)
+    // The generated block must itself be valid ES3 that the vm can load.
+    const probe: Record<string, any> = {};
+    vm.createContext(probe);
+    vm.runInContext(block.replace(/^\/\/.*$/gm, ""), probe);
+    expect(Object.keys(probe.__EASE_PRESETS).length).toBe(Object.keys(EASES).length);
   });
 
   it("__effectsList is not required for alias lookup shape", () => {

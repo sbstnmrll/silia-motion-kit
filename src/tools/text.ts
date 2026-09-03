@@ -1,17 +1,39 @@
 import { z } from "zod";
 import { argsVar } from "../bridge/index.js";
 import { compRef, layerRef, colorValue, easeSpec } from "./refs.js";
-import { runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
+import { ok, runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
+import { legibilityCheck, safeAreas, type TextKind } from "../motion/typography.js";
+
+interface LegibilitySample {
+  time: number;
+  holdSec: number | null;
+  text: string;
+  fontSizePx: number;
+  leading: number;
+  bbox: [number, number, number, number] | null;
+  boxText: boolean;
+  keyIndex?: number;
+}
+
+interface LegibilityLayer {
+  index: number;
+  name: string;
+  inPoint: number;
+  outPoint: number;
+  numTextKeys: number;
+  samples: LegibilitySample[];
+}
 
 export function getTextTools(ctx: ToolContext): ToolRecord {
   return {
     ae_text: {
       description:
-        "Text layer document. get: TextDocument snapshot (text, font, size, fill, stroke, tracking, leading, justification, box). set: change any of those (font by PostScript name; read-back flags silent font substitution). set_keyframes: hold keyframes of source text [{time, text}] (captions, counters). fonts: list installed fonts (AE 24+) with optional regex filter (postScriptName, family, style).",
+        "Text layer document. get: TextDocument snapshot (text, font, size, fill, stroke, tracking, leading, justification, box). set: change any of those (font by PostScript name; read-back flags silent font substitution). set_keyframes: hold keyframes of source text [{time, text}] (captions, counters). fonts: list installed fonts (AE 24+) with optional regex filter (postScriptName, family, style). legibility: inspect-only check of one text layer (or every text layer of the comp) against reading rules — min size for the comp height, chars per line, line count, CPS / hold time, title-safe box — at time `at` or at every source-text keyframe (hold = next key time − this key time); kind body|caption|title (default: 'caption' when the layer name contains caption, else body).",
       parameters: {
-        action: z.enum(["get", "set", "set_keyframes", "fonts"]),
+        action: z.enum(["get", "set", "set_keyframes", "fonts", "legibility"]),
         comp: compRef,
         layer: layerRef.optional(),
+        kind: z.enum(["body", "caption", "title"]).optional().describe("legibility: rule set (default inferred from the layer name)."),
         text: z.string().optional(),
         font: z.string().optional().describe("PostScript name, e.g. ESKlarheitGrotesk-Bk / ESKlarheitGrotesk-Md."),
         size: z.number().positive().optional(),
@@ -34,6 +56,66 @@ export function getTextTools(ctx: ToolContext): ToolRecord {
         limit: z.number().int().min(1).max(2000).optional(),
       },
       handler: safe(async (a: Record<string, unknown>) => {
+        if (a.action === "legibility") {
+          const r = await runScript(
+            ctx,
+            `${argsVar("a", { comp: a.comp ?? null, layer: a.layer ?? null, at: a.at ?? null, maxKeys: 400 })}
+            var c = __comp(a.comp);
+            var targets = [];
+            if (a.layer !== null && a.layer !== undefined) targets.push(__layer(c, a.layer));
+            else for (var i = 1; i <= c.numLayers; i++) if (c.layer(i) instanceof TextLayer) targets.push(c.layer(i));
+            function bboxAt(l, t) {
+              try {
+                var r = l.sourceRectAtTime(t, false);
+                var tr = l.property("ADBE Transform Group");
+                var pos = tr.property("ADBE Position").valueAtTime(t, false), anc = tr.property("ADBE Anchor Point").valueAtTime(t, false), sc = tr.property("ADBE Scale").valueAtTime(t, false);
+                var sx = sc[0] / 100, sy = sc[1] / 100;
+                return [__round(pos[0] + (r.left - anc[0]) * sx, 1), __round(pos[1] + (r.top - anc[1]) * sy, 1), __round(r.width * sx, 1), __round(r.height * sy, 1)];
+              } catch (e0) { return null; }
+            }
+            function sample(l, dp, t, hold, keyIndex) {
+              var d = dp.numKeys ? dp.valueAtTime(t, false) : dp.value;
+              var lead = d.autoLeading ? Math.round(d.fontSize * 1.2) : d.leading;
+              var s = { time: __round(t, 4), holdSec: hold === null ? null : __round(hold, 4), text: d.text, fontSizePx: d.fontSize, leading: lead, bbox: bboxAt(l, t), boxText: !!d.boxText };
+              if (keyIndex) s.keyIndex = keyIndex;
+              return s;
+            }
+            var out = [];
+            for (var q = 0; q < targets.length; q++) {
+              var l = targets[q];
+              if (!(l instanceof TextLayer)) { if (a.layer !== null) return __error("Layer is not a text layer", "BAD_ARG"); continue; }
+              var dp = l.property("ADBE Text Properties").property("ADBE Text Document");
+              var rec = { index: l.index, name: l.name, inPoint: __round(l.inPoint, 4), outPoint: __round(l.outPoint, 4), numTextKeys: dp.numKeys, samples: [] };
+              if (dp.numKeys > 0 && a.at === null) {
+                var n = Math.min(dp.numKeys, a.maxKeys);
+                for (var k = 1; k <= n; k++) { var kt = dp.keyTime(k); var next = k < dp.numKeys ? dp.keyTime(k + 1) : l.outPoint; rec.samples.push(sample(l, dp, kt, Math.max(0, next - kt), k)); }
+                if (dp.numKeys > n) rec.keysOmitted = dp.numKeys - n;
+              } else {
+                var t = a.at !== null ? a.at : Math.max(l.inPoint, Math.min(l.outPoint, c.time));
+                rec.samples.push(sample(l, dp, t, Math.max(0, l.outPoint - l.inPoint), 0));
+              }
+              out.push(rec);
+            }
+            return __result({ comp: c.name, width: c.width, height: c.height, fps: c.frameRate, layers: out });`,
+            { timeoutMs: 60_000 },
+          );
+          if (!r.success) return r;
+          const data = r.data as { comp: string; width: number; height: number; fps: number; layers: LegibilityLayer[]; warnings?: string[] };
+          const inferKind = (name: string): TextKind => (a.kind as TextKind | undefined) ?? (/caption|subtitle|sub\b/i.test(name) ? "caption" : /title|headline|h1/i.test(name) ? "title" : "body");
+          const layers = data.layers.map((l) => {
+            const kind = inferKind(l.name);
+            const results = l.samples.map((s) => {
+              const explicitLines = s.text.split(/\r\n|\r|\n/).filter(Boolean).length;
+              const wrapped = s.bbox && s.leading > 0 ? Math.max(1, Math.round(s.bbox[3] / s.leading)) : 1;
+              const lines = Math.max(explicitLines, s.boxText ? wrapped : 1);
+              const check = legibilityCheck({ text: s.text, fontSizePx: s.fontSizePx, compW: data.width, compH: data.height, lines, bbox: s.bbox ?? undefined, onScreenSec: s.holdSec ?? undefined, kind });
+              return { time: s.time, keyIndex: s.keyIndex || undefined, holdSec: s.holdSec, text: s.text.length > 80 ? `${s.text.slice(0, 77)}...` : s.text, fontSizePx: s.fontSizePx, bbox: s.bbox, pass: check.pass, issues: check.issues, metrics: check.metrics };
+            });
+            return { index: l.index, name: l.name, kind, inPoint: l.inPoint, outPoint: l.outPoint, numTextKeys: l.numTextKeys, pass: results.every((x) => x.pass), failing: results.filter((x) => !x.pass).length, samples: results };
+          });
+          const sa = safeAreas(data.width, data.height);
+          return ok({ comp: data.comp, compSize: [data.width, data.height], safeArea: { title: sa.title.box, action: sa.action.box, titleInsets: [sa.title.insetX, sa.title.insetY] }, layers, pass: layers.every((l) => l.pass), warnings: data.warnings });
+        }
         const script = `
           ${argsVar("a", a)}
           if (a.action === "fonts") {

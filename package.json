@@ -20,6 +20,7 @@
     "cep-plugin",
     "scripts",
     "presets",
+    "data/**",
     "docs/supported-actions.md",
     "README.md",
     "LICENSE",

@@ -19,12 +19,17 @@ const PROMPTS: PromptDef[] = [
       `Goal: ${goal}\n\n1. ae_status (deep=false). Stop if not connected.\n2. ae_checkpoint action=create label="before: ${goal}".\n3. Make the edit with the smallest set of tools; prefer ae_batch for several steps so it is one undo group.\n4. Verify every mutation from its read-back, then ae_frame action=capture at a representative time (and contact_sheet if motion is involved).\n5. If wrong: ae_checkpoint action=revert. If right: ae_project action=save and summarise what changed.`,
   },
   {
-    name: "visual-qa",
-    title: "Visual QA of a comp",
-    description: "Take a contact sheet and critique it against what should be on screen at each time.",
-    args: { comp: z.string().optional().describe("Comp name (default active)"), every: z.string().optional().describe("Seconds between frames, default 0.5") },
-    render: ({ comp, every }) =>
-      `Run ae_frame action=contact_sheet comp=${comp ?? "active"} every=${every ?? "0.5"} labels=true. For each frame, list what is expected (from the layer list and keyframes) versus what is visible: missing elements, clipping, text overflow, wrong colors (Silia lime is #DEFF38, text on it must be black), timing that looks wrong. Then run ae_frame action=stats to catch black/white flashes (mean luma per frame). Report defects with timecodes.`,
+    name: "motion-critique",
+    title: "Motion critique (rubric + vision, two passes)",
+    description: "Run ae_frame critique, fix only the failed numeric items, re-run once, then judge the unverifiable items from the images.",
+    args: { comp: z.string().optional().describe("Comp name (default active)"), register: z.string().optional().describe("product_video (default) | functional_ui") },
+    render: ({ comp, register }) =>
+      `PASS 1. Run ae_frame action=critique comp=${comp ?? "active"} register=${register ?? "product_video"}. It returns two images (contact sheet with frame numbers, onion-skin spacing chart) and rubric {passed, failed, unverifiable}.
+- For EACH item in rubric.failed apply exactly the numeric change in its "fix" string, using ae_ease (influences / presets), ae_keyframes (set/offset times, values) or ae_layer_update action=set_timing. Do not touch passed items and do not restyle anything the rubric did not flag.
+- Ignore rubric.unverifiable during this pass.
+PASS 2. Re-run ae_frame action=critique with the same arguments once. Report which failed items cleared.
+Then judge ONLY rubric.unverifiable from the two images: one focal motion per beat (onion trails should show a single dominant trail per beat and spacing[] should shrink monotonically for ease-out), text inside title-safe (10% inset), smallest glyph readable, text holds after coming to rest, contrast in the darkest cell, no unintended overlap, nothing clipped mid-move, a nameable intent per element (transition, demonstration, guidance, feedback, visualization, highlight, aesthetic). Silia lime is #DEFF38 and text on it must be black.
+STOP after two passes. Report remaining failures with their fix strings and the vision verdicts with timecodes / frame numbers; do not start a third edit cycle without being asked.`,
   },
   {
     name: "build-lower-third",

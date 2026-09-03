@@ -15,7 +15,8 @@ Helpers (already loaded):
   __setKeys(prop, [{time, value, ease?, interpolation?}])   __applyEase(prop, keyIndex, "power3_out" | {inInfluence,outInfluence,inSpeed,outSpeed} | {x1,y1,x2,y2})
   __coerce(prop, value)  __color("#DEFF38") -> [r,g,b]  __hex([r,g,b])  __effectMatchName("Gaussian Blur")
   __saveFrame(comp, time, path, {background})  __warn(msg)  __need(minVersion, feature)  __ver()
-Always address properties by matchName (display names are locale-dependent).`;
+Always address properties by matchName (display names are locale-dependent).
+API reference: read the ae://sdk resource (index) and ae://sdk/{object} (e.g. ae://sdk/CompItem, ae://sdk/Property, ae://sdk/TextDocument, ae://sdk/MatchNames) for the full ExtendScript object reference (AE 26.0).`;
 
 export function getScriptingTools(ctx: ToolContext): ToolRecord {
   return {

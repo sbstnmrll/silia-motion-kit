@@ -3,6 +3,8 @@ import { argsVar } from "../bridge/index.js";
 import { compRef, layerRef, easeSpec } from "./refs.js";
 import { err, ok, runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
 import { SILIA_COLORS, SILIA_DURATIONS, SILIA_EASES, SILIA_FONTS, SILIA_FORMATS, SILIA_PATTERNS, SILIA_TYPE_SCALE, resolveEase, siliaTokens } from "../silia/tokens.js";
+import { DEVICES, INTENTS, type Device, type Intent } from "../motion/taxonomy.js";
+import { planMotion } from "../motion/plan.js";
 
 type Variant = "lime" | "violeta" | "rosa" | "dark";
 
@@ -33,16 +35,31 @@ export function getSiliaTools(ctx: ToolContext): ToolRecord {
   return {
     silia_tokens: {
       description:
-        "Silia brand and motion tokens as data: colors (Lime #DEFF38 with black text, Violeta, Rosa, Grafito), video fonts (ES Klarheit Grotesk Bk/Md), formats (h1080p30, v1080x1920p60/30), durations (xs..xl), eases (power3_out etc. as cubic-bezier and KeyframeEase influences), named patterns (confirmed_entry, card_travel, zoom_punch, letter_stagger, word_reveal, push_25d), the five orb color ramps, type scale and the rules. resolve_ease converts a token to KeyframeEase influences.",
+        "Silia brand and motion tokens as data (no AE round trip): colors (Lime #DEFF38 with black text, Violeta, Rosa, Grafito), video fonts (ES Klarheit Grotesk Bk/Md), formats (h1080p30, v1080x1920p60/30), durations (xs..xl), every named ease (silia/gsap, easings.net, carbon, material, fluent, atlassian as cubic-bezier + KeyframeEase influences), motion registers (functional_ui | product_video), named patterns (confirmed_entry, card_travel, zoom_punch, letter_stagger, word_reveal, push_25d), the five orb color ramps, type scale, rules and the SaaS-video house style. resolve_ease: token → KeyframeEase influences + bezier. plan_motion: intent (transition | demonstration | guidance | feedback | visualization | highlight | aesthetic) + optional device, distance_px, register, item_count, item_duration_ms, fps → concrete register, durationMs/frames, ease + exitEase (name, bezier, influences), staggerMs, sequenceMs, rules and sources.",
       parameters: {
-        action: z.enum(["get", "resolve_ease"]).optional(),
-        token: z.string().optional().describe("resolve_ease: e.g. power3_out"),
+        action: z.enum(["get", "resolve_ease", "plan_motion"]).optional(),
+        token: z.string().optional().describe("resolve_ease: e.g. power3_out, material_emphasized_decelerate, silia.snappy"),
+        intent: z.enum(Object.keys(INTENTS) as [Intent, ...Intent[]]).optional().describe("plan_motion: what the motion is for."),
+        device: z.enum(Object.keys(DEVICES) as [Device, ...Device[]]).optional().describe("plan_motion: UX-in-Motion device (easing, offset_and_delay, parenting, transformation, value_change, masking, overlay, cloning, obscuration, parallax, dimensionality, dolly_and_zoom)."),
+        distance_px: z.number().min(0).optional().describe("plan_motion: travel distance; duration = 300*sqrt(d/200) ms clamped to the register band."),
+        register: z.enum(["functional_ui", "product_video"]).optional().describe("plan_motion: default product_video (Silia archetype premium); feedback defaults to functional_ui."),
+        item_count: z.number().int().min(1).optional().describe("plan_motion: number of staggered items."),
+        item_duration_ms: z.number().min(0).optional().describe("plan_motion: per-item duration for the stagger cap (default the planned duration)."),
+        fps: z.number().positive().optional().describe("plan_motion: frame rate for snapping (default 30)."),
       },
-      handler: safe(async (a: { action?: string; token?: string }) => {
+      handler: safe(async (a: { action?: string; token?: string; intent?: Intent; device?: Device; distance_px?: number; register?: "functional_ui" | "product_video"; item_count?: number; item_duration_ms?: number; fps?: number }) => {
         if (a.action === "resolve_ease") {
           if (!a.token) return err("token required", "BAD_ARG");
           try {
             return ok(resolveEase(a.token));
+          } catch (e) {
+            return err(e instanceof Error ? e.message : String(e), "BAD_ARG");
+          }
+        }
+        if (a.action === "plan_motion") {
+          if (!a.intent) return err(`intent required (${Object.keys(INTENTS).join(" | ")})`, "BAD_ARG");
+          try {
+            return ok(planMotion({ intent: a.intent, device: a.device, distance_px: a.distance_px, register: a.register, item_count: a.item_count, item_duration_ms: a.item_duration_ms, fps: a.fps }));
           } catch (e) {
             return err(e instanceof Error ? e.message : String(e), "BAD_ARG");
           }

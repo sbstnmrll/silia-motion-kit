@@ -101,6 +101,21 @@ export function createServer(config: AeMcpConfig, options: ServerOptions = {}): 
           const result = await guarded(args);
           if (result.success) {
             const data = result.data as Record<string, unknown> | undefined;
+            // Multi-image results: {images:[{base64, mimeType, label?}], ...meta} -> one image block per entry,
+            // base64 stripped from the JSON text block (labels and other fields kept).
+            const images = data && Array.isArray(data.images) ? (data.images as Array<Record<string, unknown>>) : null;
+            if (images && images.length && images.every((im) => im && typeof im.base64 === "string" && typeof im.mimeType === "string" && /^image\//.test(im.mimeType as string))) {
+              const { images: _omit, ...rest } = data as Record<string, unknown>;
+              void _omit;
+              const meta = { ...rest, images: images.map(({ base64: _b64, ...im }) => { void _b64; return im; }) };
+              return {
+                structuredContent: structuredToolResult(name, true, meta),
+                content: [
+                  ...images.map((im) => ({ type: "image" as const, data: im.base64 as string, mimeType: im.mimeType as string })),
+                  { type: "text" as const, text: JSON.stringify(meta, null, 2) },
+                ],
+              };
+            }
             // Vision tools return {mimeType, base64, ...meta}: emit an image block plus the metadata.
             if (data && typeof data.base64 === "string" && typeof data.mimeType === "string" && /^image\//.test(data.mimeType)) {
               const { base64, ...meta } = data;

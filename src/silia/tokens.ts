@@ -6,6 +6,9 @@
  *
  * Kept as data so the brand layer stays separable from the core server.
  */
+import { EASES, bezierToInfluence, resolveEase as resolveNamedEase } from "../motion/eases.js";
+import { REGISTERS } from "../motion/taxonomy.js";
+import { SAAS_VIDEO_STYLE } from "../motion/house-style.js";
 
 export const SILIA_COLORS = {
   lime: "#DEFF38", // acento primario. Text on lime is ALWAYS black.
@@ -37,16 +40,23 @@ export const SILIA_FORMATS = {
 /** Seconds. */
 export const SILIA_DURATIONS = { xs: 0.16, sm: 0.2, md: 0.32, lg: 0.5, xl: 0.85 } as const;
 
-/** cubic-bezier definitions (GSAP names) and their KeyframeEase equivalents (speed 0). */
-export const SILIA_EASES: Record<string, { bezier: [number, number, number, number]; inInfluence: number; outInfluence: number; note?: string }> = {
-  power2_out: { bezier: [0.25, 0.46, 0.45, 0.94], inInfluence: 55, outInfluence: 25 },
-  power3_out: { bezier: [0.215, 0.61, 0.355, 1], inInfluence: 64.5, outInfluence: 21.5, note: "default entry ease" },
-  power3_in_out: { bezier: [0.645, 0.045, 0.355, 1], inInfluence: 64.5, outInfluence: 64.5, note: "travel / card moves" },
-  power2_in_out: { bezier: [0.455, 0.03, 0.515, 0.955], inInfluence: 48.5, outInfluence: 45.5 },
-  expo_out: { bezier: [0.19, 1, 0.22, 1], inInfluence: 78, outInfluence: 19 },
-  snappy: { bezier: [0.15, 0.85, 0.15, 1], inInfluence: 85, outInfluence: 15, note: "zoom punches" },
-  linear: { bezier: [0, 0, 1, 1], inInfluence: 0.1, outInfluence: 0.1 },
-};
+/**
+ * Every named ease (Silia/GSAP, easings.net, Carbon, Material, Fluent, Atlassian, Polaris)
+ * as cubic-bezier plus KeyframeEase influences at speed 0. Derived from src/motion/eases.ts,
+ * the single source of truth; do not add rows here.
+ */
+export const SILIA_EASES: Record<string, { bezier: [number, number, number, number]; inInfluence: number; outInfluence: number; role: string; source: string; note?: string }> = Object.fromEntries(
+  Object.entries(EASES).map(([name, e]) => {
+    const inf = bezierToInfluence(e.bezier);
+    return [name, { bezier: e.bezier, inInfluence: inf.inInfluence, outInfluence: inf.outInfluence, role: e.role, source: e.source, ...(e.note ? { note: e.note } : {}) }];
+  }),
+);
+
+/** Motion registers (functional_ui | product_video) with duration bands, stagger caps and default eases. */
+export const SILIA_REGISTERS = REGISTERS;
+
+/** Silia SaaS / product video house style (opinion). */
+export const SILIA_HOUSE_STYLE = SAAS_VIDEO_STYLE;
 
 /** Named motion patterns in production. */
 export const SILIA_PATTERNS = {
@@ -91,13 +101,26 @@ export const SILIA_RULES = [
 ] as const;
 
 export function siliaTokens() {
-  return { colors: SILIA_COLORS, fonts: SILIA_FONTS, formats: SILIA_FORMATS, durations: SILIA_DURATIONS, eases: SILIA_EASES, patterns: SILIA_PATTERNS, orbSuites: SILIA_ORB_SUITES, typeScale: SILIA_TYPE_SCALE, rules: SILIA_RULES };
+  return {
+    colors: SILIA_COLORS,
+    fonts: SILIA_FONTS,
+    formats: SILIA_FORMATS,
+    durations: SILIA_DURATIONS,
+    eases: SILIA_EASES,
+    registers: SILIA_REGISTERS,
+    patterns: SILIA_PATTERNS,
+    orbSuites: SILIA_ORB_SUITES,
+    typeScale: SILIA_TYPE_SCALE,
+    rules: SILIA_RULES,
+    houseStyle: SILIA_HOUSE_STYLE,
+    resources: ["motion://tokens/easings", "motion://tokens/durations", "motion://tokens/staggers", "motion://tokens/distance-duration", "motion://ae/ease-conversion", "motion://taxonomy/{registers|intents|devices|archetypes}", "motion://house-style/saas-video"],
+  };
 }
 
-/** Resolve an ease token to a KeyframeEase-style spec (influences; speed 0 = symmetric). */
-export function resolveEase(token: string): { inInfluence: number; outInfluence: number; inSpeed: number; outSpeed: number; bezier: [number, number, number, number] } {
-  const key = token.replace(/^silia\./, "").replace(/[.\-\s]/g, "_").toLowerCase();
-  const e = SILIA_EASES[key];
-  if (!e) throw new Error(`Unknown Silia ease "${token}". Known: ${Object.keys(SILIA_EASES).join(", ")}`);
-  return { inInfluence: e.inInfluence, outInfluence: e.outInfluence, inSpeed: 0, outSpeed: 0, bezier: e.bezier };
+/** Resolve an ease token to a KeyframeEase-style spec (influences; speed 0 = symmetric). Delegates to motion/eases. */
+export function resolveEase(token: string): { name: string; inInfluence: number; outInfluence: number; inSpeed: number; outSpeed: number; bezier: [number, number, number, number]; role: string; overshoots?: boolean } {
+  const e = resolveNamedEase(token);
+  if (!e) throw new Error(`Unknown ease "${token}". Known: ${Object.keys(EASES).join(", ")}`);
+  const inf = bezierToInfluence(e.bezier);
+  return { name: e.name, inInfluence: inf.inInfluence, outInfluence: inf.outInfluence, inSpeed: 0, outSpeed: 0, bezier: e.bezier, role: e.role, ...(e.overshoots ? { overshoots: true } : {}) };
 }

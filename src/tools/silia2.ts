@@ -9,6 +9,7 @@ import { SILIA_COLORS, SILIA_FONTS, SILIA_PATTERNS, SILIA_TYPE_SCALE, resolveEas
 import { findOverlaps, loadTranscript } from "../silia/transcript.js";
 import { startJob, verifyMedia } from "../render/aerender.js";
 import { withAutoDialogs } from "../host/dialogs.js";
+import { legibilityCheck } from "../motion/typography.js";
 
 function easeFor(token: unknown): unknown {
   if (typeof token !== "string") return token ?? { inInfluence: 64.5, outInfluence: 21.5 };
@@ -129,12 +130,32 @@ export function getSilia2Tools(ctx: ToolContext): ToolRecord {
               __setKeys(op, [{ time: l.inPoint, value: 0 }, { time: l.inPoint + a.fade, value: a.opacity, ease: a.ease }, { time: tEnd - 0.15, value: a.opacity }, { time: tEnd, value: 0, ease: a.ease }]);
               layers.push(__layerInfo(l));
             }
-            return { comp: c.name, mode: a.mode, layers: layers.length, layerNames: __map(layers, function (x) { return x.name; }).slice(0, 40), sourceTextKeys: totalKeys, firstWordOnScreen: __round(firstWord, 3), lastWord: __round(lastWord, 3), box: { width: boxW, x: boxX, y: boxY } };
+            return { comp: c.name, mode: a.mode, layers: layers.length, layerNames: __map(layers, function (x) { return x.name; }).slice(0, 40), sourceTextKeys: totalKeys, firstWordOnScreen: __round(firstWord, 3), lastWord: __round(lastWord, 3), box: { width: boxW, x: boxX, y: boxY }, compSize: [c.width, c.height], fontPx: Math.round(a.size * k) };
           }));
         `;
         const r = await runScript(ctx, script, { timeoutMs: 120_000, longRunning: true });
         if (!r.success) return r;
-        return ok({ ...(r.data as object), transcript: { format: t.format, speakers: t.speakers, words: t.wordCount, turns: t.turns.length, chunks: chunks.length }, overlaps });
+        // Legibility of each caption chunk (Netflix/BBC caption rules, src/motion/typography.ts): appended as warnings.
+        const built = r.data as Record<string, unknown> & { compSize?: [number, number]; box?: { width: number }; fontPx?: number; warnings?: string[] };
+        const [compW, compH] = built.compSize ?? [1920, 1080];
+        const boxW = built.box?.width ?? Math.round(compW * 0.8);
+        const styles = (a.speaker_styles as Record<string, { size?: number; prefix?: string }> | undefined) ?? {};
+        const baseSize = (a.size as number) ?? SILIA_TYPE_SCALE.caption.size;
+        const k = compH / 1080;
+        const legibility: Array<{ chunk: number; speaker: string; start: number; end: number; text: string; issues: ReturnType<typeof legibilityCheck>["issues"] }> = [];
+        chunks.forEach((ch, i) => {
+          const st = styles[ch.speaker] ?? {};
+          const text = (st.prefix ?? "") + ch.words.map((w) => w.w).join(" ");
+          const fontPx = Math.round((st.size ?? baseSize) * k);
+          const charsPerLine = Math.max(8, Math.floor(boxW / (fontPx * 0.52)));
+          const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+          const onScreenSec = ch.end + 0.35 - (ch.start + latency);
+          const res = legibilityCheck({ text, fontSizePx: fontPx, compW, compH, lines, onScreenSec, kind: "caption" });
+          if (!res.pass && legibility.length < 40) legibility.push({ chunk: i, speaker: ch.speaker, start: Math.round((ch.start + offset) * 1000) / 1000, end: Math.round((ch.end + offset) * 1000) / 1000, text: text.length > 60 ? `${text.slice(0, 57)}...` : text, issues: res.issues });
+        });
+        const warnings = Array.isArray(built.warnings) ? [...built.warnings] : [];
+        for (const w of legibility.slice(0, 10)) warnings.push(`legibility: chunk ${w.chunk} (${w.speaker} @${w.start}s) ${w.issues.map((i) => `${i.rule} ${i.observed}`).join(", ")}`);
+        return ok({ ...built, warnings: warnings.length ? warnings : undefined, legibility: { checked: chunks.length, failing: legibility.length, rules: "caption: <=42 chars/line, <=2 lines, <=17 CPS (20 max), 5/6-7 s, >=28 px @1080", items: legibility }, transcript: { format: t.format, speakers: t.speakers, words: t.wordCount, turns: t.turns.length, chunks: chunks.length }, overlaps });
       }),
     },
 

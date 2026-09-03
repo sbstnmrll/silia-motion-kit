@@ -1,27 +1,9 @@
 import { z } from "zod";
 import { argsVar } from "../bridge/index.js";
 import { compRef, layerRef, propPath, propValue, easeSpec } from "./refs.js";
-import { runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
-
-const EXPRESSION_LIBRARY: Record<string, string> = {
-  wiggle: "wiggle(2, 30);",
-  wiggle_slow: "wiggle(0.5, 10);",
-  loop_cycle: 'loopOut("cycle");',
-  loop_pingpong: 'loopOut("pingpong");',
-  loop_offset: 'loopOut("offset");',
-  loop_continue: 'loopOut("continue");',
-  loop_in_cycle: 'loopIn("cycle");',
-  inertia: "n = 0;\nif (numKeys > 0) { n = nearestKey(time).index; if (key(n).time > time) n--; }\nif (n == 0) { t = 0; } else { t = time - key(n).time; }\nif (n > 0 && t < 1) {\n  v = velocityAtTime(key(n).time - thisComp.frameDuration / 10);\n  amp = .05; freq = 4.0; decay = 8.0;\n  value + v * amp * Math.sin(freq * t * 2 * Math.PI) / Math.exp(decay * t);\n} else { value; }",
-  bounce: "e = .7; g = 5000; nMax = 9;\nn = 0;\nif (numKeys > 0) { n = nearestKey(time).index; if (key(n).time > time) n--; }\nif (n > 0) {\n  t = time - key(n).time; v = -velocityAtTime(key(n).time - .001) * e; vl = length(v);\n  if (value instanceof Array) { vu = (vl > 0) ? normalize(v) : [0,0,0]; } else { vu = (v < 0) ? -1 : 1; }\n  tCur = 0; segDur = 2 * vl / g; tNext = segDur; nb = 1;\n  while (tNext < t && nb <= nMax) { vl *= e; segDur *= e; tCur = tNext; tNext += segDur; nb++; }\n  if (nb <= nMax) { delta = t - tCur; value + vu * delta * (vl - g * delta / 2); } else { value; }\n} else { value; }",
-  spring: "amp = .1; freq = 2.0; decay = 2.0;\nn = 0;\nif (numKeys > 0) { n = nearestKey(time).index; if (key(n).time > time) n--; }\nif (n == 0) { t = 0; } else { t = time - key(n).time; }\nif (n > 0) { v = velocityAtTime(key(n).time - thisComp.frameDuration / 10); value + v * amp * Math.sin(freq * t * 2 * Math.PI) / Math.exp(decay * t); } else { value; }",
-  link_position: 'thisComp.layer("TARGET").transform.position;',
-  follow_with_delay: 'thisComp.layer("TARGET").transform.position.valueAtTime(time - 0.1);',
-  posterize_12: "posterizeTime(12); value;",
-  text_bounds_width: "thisLayer.sourceRectAtTime(time, false).width;",
-  time_seconds_counter: 'Math.floor(time) + "s";',
-  auto_fade_in_out: "fadeIn = 0.5; fadeOut = 0.5;\nlinear(time, inPoint, inPoint + fadeIn, 0, 100) * linear(time, outPoint - fadeOut, outPoint, 1, 0);",
-  slider_driven: 'effect("Slider Control")("Slider");',
-};
+import { err, ok, runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
+import { EXPRESSION_LIBRARY, expressionNames, fillExpression, type ParamValue } from "../motion/expressions.js";
+import { easesByCategory, easeNames, EASE_ATTRIBUTION } from "../motion/eases.js";
 
 export function getPropertyTools(ctx: ToolContext): ToolRecord {
   return {
@@ -168,14 +150,15 @@ export function getPropertyTools(ctx: ToolContext): ToolRecord {
 
     ae_ease: {
       description:
-        "Easing and interpolation on existing keyframes. preset: apply a named ease (ease, ease_in, ease_out, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy, linear, hold) to keys (indices or all). custom: {inInfluence,outInfluence,inSpeed,outSpeed}. from_cubic_bezier: {x1,y1,x2,y2} applied across each consecutive key pair (out ease on key n, in ease on key n+1). interpolation: set in/out interpolation type. spatial: auto_bezier|continuous|linear tangents for spatial props. roving: set roving on interior keys. Returns the KeyList with eases.",
+        "Easing and interpolation on existing keyframes. preset: apply a named ease to keys (indices or all); preset accepts any name from motion://tokens/easings — categories silia/gsap (ease, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy, sine_/circ_/expo_/power1..4_ in|out|in_out, gsap_power2_out …), easings.net (ease_out_quart, ease_out_quint, ease_out_expo, ease_in_out_quint, ease_out_back), carbon (carbon_productive_standard|entrance|exit, carbon_expressive_*), material (material_standard, material_standard_decelerate|accelerate, material_emphasized_decelerate|accelerate), fluent (fluent_ease_out|in|in_out), atlassian (atlassian_ease_out_bold, atlassian_ease_in_out_bold, …), plus linear and hold. Named presets are cubic-beziers converted to KeyframeEase (influence AND speed from the neighbouring keys). list: names grouped by source with bezier, role and AE influences (no AE round trip). custom: {inInfluence,outInfluence,inSpeed,outSpeed}. from_cubic_bezier: {x1,y1,x2,y2} applied across each consecutive key pair (out ease on key n, in ease on key n+1). interpolation: set in/out interpolation type. spatial: auto_bezier|continuous|linear tangents for spatial props. roving: set roving on interior keys. Returns the KeyList with eases.",
       parameters: {
-        action: z.enum(["preset", "custom", "from_cubic_bezier", "interpolation", "spatial", "roving"]),
+        action: z.enum(["preset", "custom", "from_cubic_bezier", "interpolation", "spatial", "roving", "list"]),
         comp: compRef,
-        layer: layerRef,
-        path: propPath,
+        layer: layerRef.optional(),
+        path: propPath.optional(),
         keys: z.array(z.number().int().min(1)).optional().describe("1-based key indices; default all."),
-        preset: z.string().optional(),
+        preset: z.string().optional().describe("preset: a name from motion://tokens/easings (ae_ease action=list), or linear | hold."),
+        category: z.string().optional().describe("list: only this category (silia/gsap, easings.net, carbon, material, fluent, atlassian, polaris)."),
         custom: z.object({ inInfluence: z.number().min(0.1).max(100).optional(), outInfluence: z.number().min(0.1).max(100).optional(), inSpeed: z.number().optional(), outSpeed: z.number().optional() }).optional(),
         bezier: z.object({ x1: z.number(), y1: z.number(), x2: z.number(), y2: z.number() }).optional(),
         in_type: z.enum(["linear", "bezier", "hold"]).optional(),
@@ -184,6 +167,19 @@ export function getPropertyTools(ctx: ToolContext): ToolRecord {
         roving: z.boolean().optional(),
       },
       handler: safe(async (a: Record<string, unknown>) => {
+        if (a.action === "list") {
+          const grouped = easesByCategory();
+          const cat = a.category as string | undefined;
+          if (cat && !grouped[cat]) return err(`Unknown category "${cat}". Known: ${Object.keys(grouped).join(", ")}`, "BAD_ARG");
+          return ok({
+            count: cat ? grouped[cat].length : easeNames().length,
+            categories: cat ? { [cat]: grouped[cat] } : grouped,
+            special: ["linear (LINEAR interpolation)", "hold (HOLD interpolation)"],
+            conversion: "influence_out = 100*x1, speed_out = (y1/x1)*avgSpeed; influence_in = 100*(1-x2), speed_in = ((1-y2)/(1-x2))*avgSpeed; influence clamped 0.1–100. Influences shown here are at speed 0; see motion://ae/ease-conversion.",
+            attribution: EASE_ATTRIBUTION,
+          });
+        }
+        if (a.layer === undefined || !a.path) return err("layer and path required", "BAD_ARG");
         const script = `
           ${argsVar("a", a)}
           var c = __comp(a.comp); var l = __layer(c, a.layer); var p = __prop(l, a.path);
@@ -224,15 +220,16 @@ export function getPropertyTools(ctx: ToolContext): ToolRecord {
 
     ae_expression: {
       description:
-        "Expressions with validation. get; set (expression text or library name: wiggle, wiggle_slow, loop_cycle, loop_pingpong, loop_offset, loop_continue, inertia, bounce, spring, link_position, follow_with_delay, posterize_12, text_bounds_width, auto_fade_in_out, slider_driven; TARGET placeholder replaced with target_layer); set_batch [{layer,path,expression}]; remove; validate (dry-run: applies, reads expressionError, evaluates at eval_at, restores); validate_all (every expression in the comp or project, returns errors). Returns expression, enabled and expressionError read-back.",
+        `Expressions with validation. get; set (expression text, or library=<name> with params={...} filling the {{param}} placeholders; library: ${expressionNames().join(", ")}; every library entry has defaults and suggested ranges per param — see library_info); library_info: describe one or all library expressions (params, defaults, ranges, filled text; no AE round trip); set_batch [{layer,path,expression}]; remove; validate (dry-run: applies, reads expressionError, evaluates at eval_at, restores); validate_all (every expression in the comp or project, returns errors). Returns expression, enabled and expressionError read-back.`,
       parameters: {
-        action: z.enum(["get", "set", "set_batch", "remove", "validate", "validate_all"]),
+        action: z.enum(["get", "set", "set_batch", "remove", "validate", "validate_all", "library_info"]),
         comp: compRef,
         layer: layerRef.optional(),
         path: propPath.optional(),
         expression: z.string().optional(),
-        library: z.enum(Object.keys(EXPRESSION_LIBRARY) as [string, ...string[]]).optional(),
-        target_layer: z.string().optional().describe("Replaces TARGET in library expressions."),
+        library: z.enum(Object.keys(EXPRESSION_LIBRARY) as [string, ...string[]]).optional().describe("set / library_info: library expression name."),
+        params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional().describe("set / library_info: values for the library's {{param}} placeholders (missing ones use defaults), e.g. {amp: 0.1, freq: 3, decay: 6} or {target: 'Title', padding: 32}."),
+        target_layer: z.string().optional().describe("Shorthand for params.target (layer name used by link_position, follow_with_delay, ebox_*)."),
         enabled: z.boolean().optional(),
         eval_at: z.number().min(0).optional().describe("validate: evaluate at this time to surface runtime errors."),
         batch: z.array(z.object({ layer: layerRef, path: propPath, expression: z.string() })).optional(),
@@ -240,9 +237,33 @@ export function getPropertyTools(ctx: ToolContext): ToolRecord {
       },
       handler: safe(async (a: Record<string, unknown>) => {
         let expression = a.expression as string | undefined;
-        if (a.library) expression = EXPRESSION_LIBRARY[a.library as string].replace(/TARGET/g, (a.target_layer as string) ?? "TARGET");
+        let libraryWarnings: string[] = [];
+        let usedParams: Record<string, ParamValue> | undefined;
+        const params: Record<string, ParamValue> = { ...((a.params as Record<string, ParamValue> | undefined) ?? {}) };
+        if (typeof a.target_layer === "string" && params.target === undefined) params.target = a.target_layer;
+        if (a.action === "library_info") {
+          const names = a.library ? [a.library as string] : expressionNames();
+          return ok({
+            count: names.length,
+            expressions: names.map((n) => {
+              const def = EXPRESSION_LIBRARY[n];
+              const filled = fillExpression(n, a.library ? params : {});
+              return { name: n, description: def.description, appliesTo: def.appliesTo, params: def.params, source: def.source, expression: filled.expression, warnings: filled.warnings.length ? filled.warnings : undefined };
+            }),
+          });
+        }
+        if (a.library) {
+          try {
+            const filled = fillExpression(a.library as string, params);
+            expression = filled.expression;
+            libraryWarnings = filled.warnings;
+            usedParams = filled.params;
+          } catch (e) {
+            return err(e instanceof Error ? e.message : String(e), "BAD_ARG");
+          }
+        }
         const script = `
-          ${argsVar("a", { ...a, expression })}
+          ${argsVar("a", { ...a, expression, params: undefined, libraryParams: usedParams, libraryWarnings })}
           function snap(l, p) { return { layer: l.name, path: __propPath(p), expression: p.expression, enabled: p.expressionEnabled, expressionError: p.expressionError || "", canSetExpression: p.canSetExpression }; }
           if (a.action === "validate_all") {
             var errors = [], count = 0;
@@ -268,6 +289,7 @@ export function getPropertyTools(ctx: ToolContext): ToolRecord {
             if (a.expression === undefined) return __error("expression or library required", "BAD_ARG");
             __mutate("Set expression", function () { p.expression = a.expression; p.expressionEnabled = a.enabled !== false; });
             var s = snap(l, p);
+            if (a.library) { s.library = a.library; s.libraryParams = a.libraryParams; if (a.libraryWarnings && a.libraryWarnings.length) for (var w = 0; w < a.libraryWarnings.length; w++) __warn(a.libraryWarnings[w]); }
             if (a.eval_at !== undefined) { try { s.valueAt = __value(p.valueAtTime(a.eval_at, false)); s.expressionError = p.expressionError || ""; } catch (e0) { s.evalError = String(e0); } }
             return __result(s);
           }

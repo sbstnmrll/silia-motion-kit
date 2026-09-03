@@ -9,12 +9,12 @@ Generated 2026-09-03 from the tool registry. 44 tools.
 | `ae_checkpoint` | filesystem | `create`, `list`, `revert`, `diff`, `delete` | Transactional safety for the open project. create: save a full copy of the project (with a label) plus a structural inventory, then continue working on the original. list: checkpoints for this project. revert: close the  |
 | `ae_comp` | edit | `list`, `get`, `create`, `update`, `duplicate`, `delete`, `set_active`, `open` | Compositions. list: all comps. get: one comp with its layers. create: new comp (preset h1080p30\|v1080x1920p60\|v1080x1920p30\|... or explicit width/height/frame_rate; duration seconds; bg color). update: rename, duratio |
 | `ae_dialogs` | inspect | `list`, `ok`, `cancel`, `close` | List or answer modal dialogs open in After Effects (Windows). A modal blocks the scripting engine, so tool calls return ENGINE_BUSY until it is dismissed. list: dialogs with their text. ok / cancel / close: answer one (h |
-| `ae_ease` | edit | `preset`, `custom`, `from_cubic_bezier`, `interpolation`, `spatial`, `roving` | Easing and interpolation on existing keyframes. preset: apply a named ease (ease, ease_in, ease_out, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy, linear, hold) to keys (indices or all). custom: { |
+| `ae_ease` | edit | `preset`, `custom`, `from_cubic_bezier`, `interpolation`, `spatial`, `roving`, `list` | Easing and interpolation on existing keyframes. preset: apply a named ease to keys (indices or all); preset accepts any name from motion://tokens/easings — categories silia/gsap (ease, ease_in_out, power2_out, power3_out |
 | `ae_effect` | edit | `list`, `apply`, `get_params`, `set_params`, `remove`, `reorder`, `toggle`, `duplicate`, `apply_preset` | Effects on a layer (effect parade). list; apply (matchName, display name, alias, or template name from ae_effects_catalog templates) with optional params {paramMatchNameOrName: value} and position; get_params (all parame |
 | `ae_effects_catalog` | inspect | `effects`, `resolve`, `templates`, `presets` | Installed effects and presets. effects: search app.effects by regex on display name or matchName (category included). resolve: map a display name or alias to the canonical matchName (includes corrections: Glow=ADBE Glo2, |
 | `ae_execute_extendscript` | unsafe-script | — | Run arbitrary ExtendScript inside After Effects (escape hatch when no dedicated tool fits). Gated: requires confirm=true AND the server started with AE_MCP_ALLOW_RAW=1 (or the unsafe-script capability). The code is wrapp |
-| `ae_expression` | edit | `get`, `set`, `set_batch`, `remove`, `validate`, `validate_all` | Expressions with validation. get; set (expression text or library name: wiggle, wiggle_slow, loop_cycle, loop_pingpong, loop_offset, loop_continue, inertia, bounce, spring, link_position, follow_with_delay, posterize_12, |
-| `ae_frame` | export | `capture`, `contact_sheet`, `stats`, `compare` | See what a comp actually renders. capture: one frame at time t as an image (PNG, or JPEG for smaller payloads); background '#0A0A0B' flattens alpha (recommended; avoids the black fringe of transparent captures). contact_ |
+| `ae_expression` | edit | `get`, `set`, `set_batch`, `remove`, `validate`, `validate_all`, `library_info` | Expressions with validation. get; set (expression text, or library=<name> with params={...} filling the {{param}} placeholders; library: wiggle, wiggle_slow, wiggle_drift, wiggle_jitter, loop_cycle, loop_pingpong, loop_o |
+| `ae_frame` | export | `capture`, `contact_sheet`, `onion_skin`, `stats`, `compare`, `keyframe_dump`, `critique` | See what a comp actually renders, and judge it. capture: one frame at time t as an image (PNG, or JPEG for smaller payloads); background '#0A0A0B' flattens alpha (recommended). contact_sheet: several frames tiled into on |
 | `ae_handoff` | filesystem | `mogrt`, `dynamic_link`, `alpha_render` | Prepare a Premiere Pro handoff. mogrt: given an exported .mogrt (or comp to export first) return the premiere-pro MCP call import_mogrt {mogrt_path, time_seconds, video_track_index}. dynamic_link: return the call import_ |
 | `ae_items` | edit | `list`, `get`, `import`, `import_sequence`, `replace`, `relink_missing`, `interpret`, `create_folder`, `move`, `rename`, `delete`, `find_missing` | Project panel items (footage, comps, folders, solids). list: with filter {type, nameRegex, folder, missingOnly}. get: one item by id or name. import: file (or folder path) with import_as footage\|comp\|comp_cropped\|proj |
 | `ae_keyframes` | edit | `set`, `add`, `remove`, `list`, `offset`, `scale_time`, `copy` | Keyframe CRUD on one property. set: write keys [{time, value, ease?, interpolation?}] (batched via setValuesAtTimes; existing keys at other times are kept). add: alias of set. remove: by times[], indices[], range {from,t |
@@ -33,7 +33,7 @@ Generated 2026-09-03 from the tool registry. 44 tools.
 | `ae_render_queue` | export | `list`, `add`, `update`, `remove`, `clear`, `templates`, `queue_in_ame`, `render` | In-app render queue. list items; add a comp (rs_template, om_template, output path, optional frame range or work_area); update an item; remove; clear; templates (render settings and output module template names on this m |
 | `ae_shape` | edit | `list`, `add_group`, `add_path`, `add_fill`, `add_stroke`, `add_trim`, `add_repeater`, `add_round_corners`, `set`, `remove` | Shape layer contents. list: tree of groups/paths/fills/strokes/operators with matchName paths. add_group (name, optional group_path parent). add_path {rect\|ellipse\|polystar\|custom} into a group. add_fill/add_stroke (c |
 | `ae_status` | inspect | — | Health check and orientation. Always call this first. Reports whether the After Effects bridge is live (which AE version, which transport), the open project summary (path, dirty, comps, missing footage), the active comp, |
-| `ae_text` | edit | `get`, `set`, `set_keyframes`, `fonts` | Text layer document. get: TextDocument snapshot (text, font, size, fill, stroke, tracking, leading, justification, box). set: change any of those (font by PostScript name; read-back flags silent font substitution). set_k |
+| `ae_text` | edit | `get`, `set`, `set_keyframes`, `fonts`, `legibility` | Text layer document. get: TextDocument snapshot (text, font, size, fill, stroke, tracking, leading, justification, box). set: change any of those (font by PostScript name; read-back flags silent font substitution). set_k |
 | `ae_text_animator` | edit | `list`, `add`, `set_selector`, `set_property`, `remove`, `preset` | Text animators and range selectors. list; add an animator with properties {opacity, position:[x,y], scale:[x,y], rotation, tracking, blur:[x,y], fill:'#hex', line_spacing} and a range selector {start,end,offset, based_on |
 | `ae_tool_library` | filesystem | `save`, `update`, `list`, `get`, `run`, `delete`, `promote` | Self-growing tool library. After a raw ExtendScript works (ae_execute_extendscript), save it here with a name, description and param schema so it can be re-run by name (and promoted to a first-class MCP tool). save/updat |
 | `ae_undo` | edit | `undo`, `redo` | Undo or redo the last N undo groups in After Effects (each tool call is one group). Returns the active comp read-back after the operation. |
@@ -45,7 +45,7 @@ Generated 2026-09-03 from the tool registry. 44 tools.
 | `silia_lower_third` | edit | — | Build an on-brand lower third: rounded card (variant lime \| violeta \| rosa \| dark) with name (ES Klarheit Md) and optional role (Bk), positioned bottom-left or bottom-right inside the safe margin, with the confirmed e |
 | `silia_outro` | export | `plan`, `render` | Regenerate the Silia outro from its .aep (the source references ~40 files on an external drive; missing-footage layers render opaque white). plan: open the project (as a copy), list comps and every layer with missing foo |
 | `silia_push_25d` | edit | — | 2.5D push on a still/plate: precomposes the layer at 2x (pre-scale for subpixel motion, collapse transformations), then animates scale from 100 to 100+amount_pct (direction in) or the reverse (out) across the layer's dur |
-| `silia_tokens` | inspect | `get`, `resolve_ease` | Silia brand and motion tokens as data: colors (Lime #DEFF38 with black text, Violeta, Rosa, Grafito), video fonts (ES Klarheit Grotesk Bk/Md), formats (h1080p30, v1080x1920p60/30), durations (xs..xl), eases (power3_out e |
+| `silia_tokens` | inspect | `get`, `resolve_ease`, `plan_motion` | Silia brand and motion tokens as data (no AE round trip): colors (Lime #DEFF38 with black text, Violeta, Rosa, Grafito), video fonts (ES Klarheit Grotesk Bk/Md), formats (h1080p30, v1080x1920p60/30), durations (xs..xl),  |
 | `silia_type` | edit | `title`, `kinetic`, `word_reveal` | On-brand typography. title: headline (Md, title_l/m/s) + optional sub (Bk) centered or aligned, with confirmed entry. kinetic: text layer with letter stagger (0.032 s per letter, 0.32 s, power3_out, rise 18 px). word_rev |
 | `silia_ui_composite` | edit | — | Composite Silia product UI over a plate from a spec (e.g. exported from Figma): rows (text lines), pills (rounded lime/violeta chips) and an optional cursor path, each as its own layer, stacked above plate_layer, enterin |
 
@@ -131,16 +131,17 @@ List or answer modal dialogs open in After Effects (Windows). A modal blocks the
 
 ### ae_ease
 
-Easing and interpolation on existing keyframes. preset: apply a named ease (ease, ease_in, ease_out, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy, linear, hold) to keys (indices or all). custom: {inInfluence,outInfluence,inSpeed,outSpeed}. from_cubic_bezier: {x1,y1,x2,y2} applied across each consecutive key pair (out ease on key n, in ease on key n+1). interpolation: set in/out interpolation type. spatial: auto_bezier|continuous|linear tangents for spatial props. roving: set roving on interior keys. Returns the KeyList with eases.
+Easing and interpolation on existing keyframes. preset: apply a named ease to keys (indices or all); preset accepts any name from motion://tokens/easings — categories silia/gsap (ease, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy, sine_/circ_/expo_/power1..4_ in|out|in_out, gsap_power2_out …), easings.net (ease_out_quart, ease_out_quint, ease_out_expo, ease_in_out_quint, ease_out_back), carbon (carbon_productive_standard|entrance|exit, carbon_expressive_*), material (material_standard, material_standard_decelerate|accelerate, material_emphasized_decelerate|accelerate), fluent (fluent_ease_out|in|in_out), atlassian (atlassian_ease_out_bold, atlassian_ease_in_out_bold, …), plus linear and hold. Named presets are cubic-beziers converted to KeyframeEase (influence AND speed from the neighbouring keys). list: names grouped by source with bezier, role and AE influences (no AE round trip). custom: {inInfluence,outInfluence,inSpeed,outSpeed}. from_cubic_bezier: {x1,y1,x2,y2} applied across each consecutive key pair (out ease on key n, in ease on key n+1). interpolation: set in/out interpolation type. spatial: auto_bezier|continuous|linear tangents for spatial props. roving: set roving on interior keys. Returns the KeyList with eases.
 
 | Param | Type | Notes |
 |---|---|---|
-| `action` | enum: preset \| custom \| from_cubic_bezier \| interpolation \| spatial \| roving |  |
+| `action` | enum: preset \| custom \| from_cubic_bezier \| interpolation \| spatial \| roving \| list |  |
 | `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
-| `layer` | union | Layer: 1-based index, layer name, or {id} (AE 22+), {index}, {name}. |
-| `path` | string | Property path by matchName, e.g. "ADBE Transform Group/ADBE Position" or "Effects/ADBE Gaussian Blur 2/ADBE Gaussian Blur 2-0001". Aliases: position, scale, rotation, opacity, anchor, orientation, "source text", contents. |
+| `layer` | union (optional) | Layer: 1-based index, layer name, or {id} (AE 22+), {index}, {name}. |
+| `path` | string (optional) | Property path by matchName, e.g. "ADBE Transform Group/ADBE Position" or "Effects/ADBE Gaussian Blur 2/ADBE Gaussian Blur 2-0001". Aliases: position, scale, rotation, opacity, anchor, orientation, "source text", contents. |
 | `keys` | array (optional) | 1-based key indices; default all. |
-| `preset` | string (optional) |  |
+| `preset` | string (optional) | preset: a name from motion://tokens/easings (ae_ease action=list), or linear \| hold. |
+| `category` | string (optional) | list: only this category (silia/gsap, easings.net, carbon, material, fluent, atlassian, polaris). |
 | `custom` | object (optional) |  |
 | `bezier` | object (optional) |  |
 | `in_type` | enum: linear \| bezier \| hold (optional) |  |
@@ -196,6 +197,7 @@ Helpers (already loaded):
   __coerce(prop, value)  __color("#DEFF38") -> [r,g,b]  __hex([r,g,b])  __effectMatchName("Gaussian Blur")
   __saveFrame(comp, time, path, {background})  __warn(msg)  __need(minVersion, feature)  __ver()
 Always address properties by matchName (display names are locale-dependent).
+API reference: read the ae://sdk resource (index) and ae://sdk/{object} (e.g. ae://sdk/CompItem, ae://sdk/Property, ae://sdk/TextDocument, ae://sdk/MatchNames) for the full ExtendScript object reference (AE 26.0).
 
 | Param | Type | Notes |
 |---|---|---|
@@ -206,17 +208,18 @@ Always address properties by matchName (display names are locale-dependent).
 
 ### ae_expression
 
-Expressions with validation. get; set (expression text or library name: wiggle, wiggle_slow, loop_cycle, loop_pingpong, loop_offset, loop_continue, inertia, bounce, spring, link_position, follow_with_delay, posterize_12, text_bounds_width, auto_fade_in_out, slider_driven; TARGET placeholder replaced with target_layer); set_batch [{layer,path,expression}]; remove; validate (dry-run: applies, reads expressionError, evaluates at eval_at, restores); validate_all (every expression in the comp or project, returns errors). Returns expression, enabled and expressionError read-back.
+Expressions with validation. get; set (expression text, or library=<name> with params={...} filling the {{param}} placeholders; library: wiggle, wiggle_slow, wiggle_drift, wiggle_jitter, loop_cycle, loop_pingpong, loop_offset, loop_continue, loop_in_cycle, inertia, bounce, bounce_physics, spring, time_offset, ekeys_style, ebox_responsive, ebox_center, typewriter, counter, link_position, follow_with_delay, posterize_12, text_bounds_width, time_seconds_counter, auto_fade_in_out, slider_driven; every library entry has defaults and suggested ranges per param — see library_info); library_info: describe one or all library expressions (params, defaults, ranges, filled text; no AE round trip); set_batch [{layer,path,expression}]; remove; validate (dry-run: applies, reads expressionError, evaluates at eval_at, restores); validate_all (every expression in the comp or project, returns errors). Returns expression, enabled and expressionError read-back.
 
 | Param | Type | Notes |
 |---|---|---|
-| `action` | enum: get \| set \| set_batch \| remove \| validate \| validate_all |  |
+| `action` | enum: get \| set \| set_batch \| remove \| validate \| validate_all \| library_info |  |
 | `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
 | `layer` | union (optional) | Layer: 1-based index, layer name, or {id} (AE 22+), {index}, {name}. |
 | `path` | string (optional) | Property path by matchName, e.g. "ADBE Transform Group/ADBE Position" or "Effects/ADBE Gaussian Blur 2/ADBE Gaussian Blur 2-0001". Aliases: position, scale, rotation, opacity, anchor, orientation, "source text", contents. |
 | `expression` | string (optional) |  |
-| `library` | enum: wiggle \| wiggle_slow \| loop_cycle \| loop_pingpong \| loop_offset \| loop_continue \| loop_in_cycle \| inertia \| bounce \| spring \| link_position \| follow_with_delay \| posterize_12 \| text_bounds_width \| time_seconds_counter \| auto_fade_in_out \| slider_driven (optional) |  |
-| `target_layer` | string (optional) | Replaces TARGET in library expressions. |
+| `library` | enum: wiggle \| wiggle_slow \| wiggle_drift \| wiggle_jitter \| loop_cycle \| loop_pingpong \| loop_offset \| loop_continue \| loop_in_cycle \| inertia \| bounce \| bounce_physics \| spring \| time_offset \| ekeys_style \| ebox_responsive \| ebox_center \| typewriter \| counter \| link_position \| follow_with_delay \| posterize_12 \| text_bounds_width \| time_seconds_counter \| auto_fade_in_out \| slider_driven (optional) | set / library_info: library expression name. |
+| `params` | record (optional) | set / library_info: values for the library's {{param}} placeholders (missing ones use defaults), e.g. {amp: 0.1, freq: 3, decay: 6} or {target: 'Title', padding: 32}. |
+| `target_layer` | string (optional) | Shorthand for params.target (layer name used by link_position, follow_with_delay, ebox_*). |
 | `enabled` | boolean (optional) |  |
 | `eval_at` | number (optional) | validate: evaluate at this time to surface runtime errors. |
 | `batch` | array (optional) |  |
@@ -224,30 +227,35 @@ Expressions with validation. get; set (expression text or library name: wiggle, 
 
 ### ae_frame
 
-See what a comp actually renders. capture: one frame at time t as an image (PNG, or JPEG for smaller payloads); background '#0A0A0B' flattens alpha (recommended; avoids the black fringe of transparent captures). contact_sheet: several frames tiled into one labeled JPEG grid (times[], or every N seconds, or at_markers, or at_keyframes of a layer property), max_width caps the sheet. stats: per-frame mean/max luma and alpha coverage without returning pixels (flash/black detection). compare: mean absolute difference between two times or a time and a reference PNG. hide_layers/solo_layers isolate parts of the comp during capture (restored afterwards).
+See what a comp actually renders, and judge it. capture: one frame at time t as an image (PNG, or JPEG for smaller payloads); background '#0A0A0B' flattens alpha (recommended). contact_sheet: several frames tiled into one labeled JPEG grid (labels: timecode · f<frame> · seconds); times[], every N seconds, at_markers, or at_keyframes of a layer property; ranges <= 2 s default to every 0.1 s (~10 fps). onion_skin: the same frames composited into ONE spacing chart (latest frame untinted, earlier frames as hue-tinted ghosts of changed pixels with decaying alpha, change bounding boxes, legend with frame numbers) plus spacing[] = per-sample centroid displacement in px. stats: per-frame mean/max luma and alpha coverage (flash/black detection). compare: mean absolute difference between two times or a time and a reference PNG. keyframe_dump: no images; every animated property of the layers (default all, cap 60) with keys {t, frame, value, in/out interpolation, influences, speeds}, glow effects, and first-key stagger deltas. critique: contact_sheet + onion_skin + keyframe_dump, then the motion rubric for a register (product_video | functional_ui): failed items carry numeric fixes, unverifiable items are for you to judge from the two images. hide_layers/solo_layers isolate parts of the comp during capture (restored afterwards).
 
 | Param | Type | Notes |
 |---|---|---|
-| `action` | enum: capture \| contact_sheet \| stats \| compare |  |
+| `action` | enum: capture \| contact_sheet \| onion_skin \| stats \| compare \| keyframe_dump \| critique |  |
 | `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
 | `time` | number (optional) | capture/compare: seconds (default comp time). |
 | `times` | array (optional) |  |
-| `every` | number (optional) | contact_sheet/stats: sample every N seconds across the range. |
-| `range` | object (optional) |  |
+| `every` | number (optional) | contact_sheet/onion_skin/stats/critique: sample every N seconds across the range (default 0.1 s when the range is <= 2 s, else range/12). |
+| `range` | object (optional) | Sampling range (default whole comp; critique defaults to the animated span). |
 | `at_markers` | boolean (optional) |  |
 | `at_keyframes` | object (optional) |  |
-| `max_frames` | number (optional) | Cap for every/at_* (default 16). |
-| `max_width` | number (optional) | Output width cap (default 1280 for capture, 1600 for sheets). |
+| `max_frames` | number (optional) | Cap for every/at_* (default 16; 24 for short ranges at 0.1 s). |
+| `max_width` | number (optional) | Output width cap (default 1280 for capture/onion_skin, 1600 for sheets). |
 | `format` | enum: png \| jpeg (optional) |  |
 | `background` | nullable (optional) | Flatten onto this color (default #0A0A0B). null keeps alpha (PNG only). |
 | `region` | array (optional) | Crop [x,y,w,h] in comp pixels before scaling. |
 | `hide_layers` | array (optional) | One or more layer references. |
 | `solo_layers` | array (optional) | One or more layer references. |
-| `labels` | boolean (optional) | contact_sheet: draw timecodes (default true). |
+| `labels` | boolean (optional) | contact_sheet: draw labels (default true). |
 | `columns` | number (optional) |  |
+| `boxes` | boolean (optional) | onion_skin/critique: outline the changed region per sample (default true). |
 | `reference_png` | string (optional) | compare: path of a reference image (else compare time vs time_b). |
 | `time_b` | number (optional) |  |
 | `keep_files` | boolean (optional) | Keep the PNG files on disk and return their paths (default true). |
+| `layers` | array (optional) | keyframe_dump/critique: layers to inspect (default all, cap 60). |
+| `max_layers` | number (optional) |  |
+| `register` | enum: product_video \| functional_ui (optional) | critique: motion register (default product_video). |
+| `intent` | enum: transition \| demonstration \| guidance \| feedback \| visualization \| highlight \| aesthetic (optional) | critique: declared animation intent (AniMINT). |
 
 ### ae_handoff
 
@@ -588,13 +596,14 @@ Health check and orientation. Always call this first. Reports whether the After 
 
 ### ae_text
 
-Text layer document. get: TextDocument snapshot (text, font, size, fill, stroke, tracking, leading, justification, box). set: change any of those (font by PostScript name; read-back flags silent font substitution). set_keyframes: hold keyframes of source text [{time, text}] (captions, counters). fonts: list installed fonts (AE 24+) with optional regex filter (postScriptName, family, style).
+Text layer document. get: TextDocument snapshot (text, font, size, fill, stroke, tracking, leading, justification, box). set: change any of those (font by PostScript name; read-back flags silent font substitution). set_keyframes: hold keyframes of source text [{time, text}] (captions, counters). fonts: list installed fonts (AE 24+) with optional regex filter (postScriptName, family, style). legibility: inspect-only check of one text layer (or every text layer of the comp) against reading rules — min size for the comp height, chars per line, line count, CPS / hold time, title-safe box — at time `at` or at every source-text keyframe (hold = next key time − this key time); kind body|caption|title (default: 'caption' when the layer name contains caption, else body).
 
 | Param | Type | Notes |
 |---|---|---|
-| `action` | enum: get \| set \| set_keyframes \| fonts |  |
+| `action` | enum: get \| set \| set_keyframes \| fonts \| legibility |  |
 | `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
 | `layer` | union (optional) | Layer: 1-based index, layer name, or {id} (AE 22+), {index}, {name}. |
+| `kind` | enum: body \| caption \| title (optional) | legibility: rule set (default inferred from the layer name). |
 | `text` | string (optional) |  |
 | `font` | string (optional) | PostScript name, e.g. ESKlarheitGrotesk-Bk / ESKlarheitGrotesk-Md. |
 | `size` | number (optional) |  |
@@ -791,12 +800,19 @@ Regenerate the Silia outro from its .aep (the source references ~40 files on an 
 
 ### silia_tokens
 
-Silia brand and motion tokens as data: colors (Lime #DEFF38 with black text, Violeta, Rosa, Grafito), video fonts (ES Klarheit Grotesk Bk/Md), formats (h1080p30, v1080x1920p60/30), durations (xs..xl), eases (power3_out etc. as cubic-bezier and KeyframeEase influences), named patterns (confirmed_entry, card_travel, zoom_punch, letter_stagger, word_reveal, push_25d), the five orb color ramps, type scale and the rules. resolve_ease converts a token to KeyframeEase influences.
+Silia brand and motion tokens as data (no AE round trip): colors (Lime #DEFF38 with black text, Violeta, Rosa, Grafito), video fonts (ES Klarheit Grotesk Bk/Md), formats (h1080p30, v1080x1920p60/30), durations (xs..xl), every named ease (silia/gsap, easings.net, carbon, material, fluent, atlassian as cubic-bezier + KeyframeEase influences), motion registers (functional_ui | product_video), named patterns (confirmed_entry, card_travel, zoom_punch, letter_stagger, word_reveal, push_25d), the five orb color ramps, type scale, rules and the SaaS-video house style. resolve_ease: token → KeyframeEase influences + bezier. plan_motion: intent (transition | demonstration | guidance | feedback | visualization | highlight | aesthetic) + optional device, distance_px, register, item_count, item_duration_ms, fps → concrete register, durationMs/frames, ease + exitEase (name, bezier, influences), staggerMs, sequenceMs, rules and sources.
 
 | Param | Type | Notes |
 |---|---|---|
-| `action` | enum: get \| resolve_ease (optional) |  |
-| `token` | string (optional) | resolve_ease: e.g. power3_out |
+| `action` | enum: get \| resolve_ease \| plan_motion (optional) |  |
+| `token` | string (optional) | resolve_ease: e.g. power3_out, material_emphasized_decelerate, silia.snappy |
+| `intent` | enum: transition \| demonstration \| guidance \| feedback \| visualization \| highlight \| aesthetic (optional) | plan_motion: what the motion is for. |
+| `device` | enum: easing \| offset_and_delay \| parenting \| transformation \| value_change \| masking \| overlay \| cloning \| obscuration \| parallax \| dimensionality \| dolly_and_zoom (optional) | plan_motion: UX-in-Motion device (easing, offset_and_delay, parenting, transformation, value_change, masking, overlay, cloning, obscuration, parallax, dimensionality, dolly_and_zoom). |
+| `distance_px` | number (optional) | plan_motion: travel distance; duration = 300*sqrt(d/200) ms clamped to the register band. |
+| `register` | enum: functional_ui \| product_video (optional) | plan_motion: default product_video (Silia archetype premium); feedback defaults to functional_ui. |
+| `item_count` | number (optional) | plan_motion: number of staggered items. |
+| `item_duration_ms` | number (optional) | plan_motion: per-item duration for the stagger cap (default the planned duration). |
+| `fps` | number (optional) | plan_motion: frame rate for snapping (default 30). |
 
 ### silia_type
 

@@ -45,7 +45,7 @@ MCP client ──stdio──> ae-mcp (Node) ──cmd_<id>.jsx──> %TEMP%\ae-
 - Renders never block the UI: `ae_render` saves a copy and runs `aerender.exe` as a detached job, then verifies the file (duration, fps, size, alpha, head black, luma).
 - Modal dialogs block the scripting engine. Calls return `ENGINE_BUSY`; `ae_dialogs` lists and answers them (the MOGRT font warning is answered automatically).
 
-## Tools (37)
+## Tools (44)
 
 | Area | Tools |
 |---|---|
@@ -53,15 +53,29 @@ MCP client ──stdio──> ae-mcp (Node) ──cmd_<id>.jsx──> %TEMP%\ae-
 | Project | `ae_project`, `ae_items` |
 | Comps | `ae_comp`, `ae_markers`, `ae_precompose` |
 | Layers | `ae_layer_create`, `ae_layer_query`, `ae_layer_update`, `ae_layer_transform`, `ae_masks` |
-| Animation | `ae_property_get`, `ae_property_set`, `ae_keyframes`, `ae_ease` (presets + cubic-bezier), `ae_expression` (validate, library) |
+| Animation | `ae_property_get`, `ae_property_set`, `ae_keyframes`, `ae_ease` (57 named eases from Silia/GSAP, easings.net, Carbon, Material, Fluent, Atlassian + cubic-bezier; `list`), `ae_expression` (validate, parametrised library, `library_info`) |
 | Effects / text / shapes | `ae_effects_catalog`, `ae_effect`, `ae_text`, `ae_text_animator`, `ae_shape` |
 | Render & vision | `ae_render` (aerender jobs + verify), `ae_render_queue`, `ae_frame` (capture, contact sheet, stats, compare) |
 | Safety & growth | `ae_checkpoint`, `ae_tool_library` (save working scripts; `promote` registers `lib_*` tools) |
 | Handoff | `ae_mogrt`, `ae_handoff` (exact `premiere-pro` MCP calls), `ae_audio` |
-| Silia | `silia_tokens`, `silia_comp`, `silia_lower_third`, `silia_type`, `silia_captions`, `silia_push_25d`, `silia_grade`, `silia_outro`, `silia_conform`, `silia_ui_composite` |
+| Silia | `silia_tokens` (tokens, `resolve_ease`, `plan_motion`: intent → register, duration, ease, stagger), `silia_comp`, `silia_lower_third`, `silia_type`, `silia_captions`, `silia_push_25d`, `silia_grade`, `silia_outro`, `silia_conform`, `silia_ui_composite` |
 | Batch | `ae_versions` (nexrender-style data-driven renders) |
 
 Full parameter reference: `docs/supported-actions.md` (`npm run docs:supported-actions`).
+
+## Resources
+
+| URI | Content |
+|---|---|
+| `config://ae-instructions`, `ae://matchnames`, `ae://status`, `ae://project`, `ae://comps` | Instructions, matchName cheat sheet, live bridge/project state |
+| `motion://tokens/easings` | Every named ease: cubic-bezier, CSS, AE influences, GSAP name, role, source, license |
+| `motion://tokens/durations`, `motion://tokens/staggers`, `motion://tokens/distance-duration` | Duration scales (Carbon, Material 3, Fluent 2, Atlassian, Val Head, Silia), stagger table, distance → duration formula |
+| `motion://ae/ease-conversion` | cubic-bezier → KeyframeEase formulas, clamp, units, spatial arity caveat |
+| `motion://taxonomy/{registers\|intents\|devices\|archetypes}` | Motion taxonomy (`src/motion/taxonomy.ts`) |
+| `motion://house-style/saas-video` | Silia SaaS-video house style (opinion) |
+| `ae://sdk`, `ae://sdk/{object}` | ExtendScript API reference per object (AE 26.0; `data/sdk`, from pushREC/after-effects-sdk-kb, MIT) |
+
+Named eases live in `src/motion/eases.ts`; the build regenerates the `__EASE_PRESETS` block in `dist/jsx/helpers.jsx` from it.
 
 ## Environment
 
@@ -84,7 +98,7 @@ Full parameter reference: `docs/supported-actions.md` (`npm run docs:supported-a
 
 ```bash
 npm run build        # tsc + copy jsx
-npm test             # 39 unit tests (no AE needed)
+npm test             # unit tests (no AE needed; vitest, tests/unit)
 npm run test:live    # integration against a running AE (AE_MCP_LIVE=1)
 ```
 
