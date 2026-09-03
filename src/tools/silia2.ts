@@ -8,6 +8,7 @@ import { err, ok, runScript, safe, type ToolContext, type ToolRecord } from "./t
 import { SILIA_COLORS, SILIA_FONTS, SILIA_PATTERNS, SILIA_TYPE_SCALE, resolveEase } from "../silia/tokens.js";
 import { findOverlaps, loadTranscript } from "../silia/transcript.js";
 import { startJob, verifyMedia } from "../render/aerender.js";
+import { withAutoDialogs } from "../host/dialogs.js";
 
 function easeFor(token: unknown): unknown {
   if (typeof token !== "string") return token ?? { inInfluence: 64.5, outInfluence: 21.5 };
@@ -189,7 +190,9 @@ export function getSilia2Tools(ctx: ToolContext): ToolRecord {
           p.save(__file(a.workCopy));
           return __result({ plan: plan, disabled: applied, saved: a.workCopy, targets: __map(targets, function (t) { return { key: t.key, name: t.comp.name, duration: __round(t.comp.duration), fps: __round(t.comp.frameRate, 3), width: t.comp.width, height: t.comp.height }; }) });
         `;
-        const r = await runScript(ctx, script, { timeoutMs: 180_000, longRunning: true });
+        // Opening the outro raises "missing effects" / "missing footage" dialogs; answer them.
+        const { result: r, dialogs } = await withAutoDialogs(runScript(ctx, script, { timeoutMs: 180_000, longRunning: true }));
+        if (r.success && dialogs.length) (r.data as Record<string, unknown>).dialogs = dialogs.map((x) => ({ text: x.text.slice(0, 200), acted: x.acted }));
         if (!r.success || a.action === "plan") return r;
         const d = r.data as { targets: Array<{ key: string; name: string; duration: number; fps: number; width: number; height: number }>; disabled: string[]; saved: string };
         const renderCopy = join(ctx.config.dataDir, "jobs", `outro_${stamp}_aerender.aep`);

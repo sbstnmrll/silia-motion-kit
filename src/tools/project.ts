@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { argsVar } from "../bridge/index.js";
 import { runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
+import { withAutoDialogs } from "../host/dialogs.js";
 
 export function getProjectTools(ctx: ToolContext): ToolRecord {
   return {
@@ -75,6 +76,11 @@ export function getProjectTools(ctx: ToolContext): ToolRecord {
           }
           return __error("Unknown action " + a.action, "BAD_ARG");
         `;
+        if (a.action === "open") {
+          const { result, dialogs } = await withAutoDialogs(runScript(ctx, script, { timeoutMs: 120_000, longRunning: true }));
+          if (result.success && dialogs.length) (result.data as Record<string, unknown>).dialogs = dialogs.map((x) => ({ text: x.text.slice(0, 200), acted: x.acted }));
+          return result;
+        }
         return runScript(ctx, script, { timeoutMs: 60_000, longRunning: true });
       }),
     },

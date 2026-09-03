@@ -60,6 +60,10 @@ export async function aeDialogs(action: "list" | "ok" | "cancel" | "close" = "li
 export const AUTO_OK_PATTERNS: RegExp[] = [
   /fonts were not synced from Adobe/i, // MOGRT export: non-Adobe fonts warning
   /will be marked as requiring fonts/i,
+  /references to missing effects/i, // project open: third-party plugins not installed (informational)
+  /missing effects/i,
+  /files are missing since you last saved/i, // project open: missing footage (informational)
+  /missing footage/i,
 ];
 
 /**

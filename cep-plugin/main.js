@@ -325,8 +325,15 @@ function detectVersion(done) {
 
   // aerender / the render engine also loads CEP extensions. Never bridge there: it
   // would execute commands against the render project instead of the user session.
+  // Belt and braces: aerender launches AfterFX with -re/-noui; the CEP process's parent is that host.
+  var hostIsRenderEngine = false;
+  try {
+    var cp = nodeRequire("child_process"); var ppid = nodeRequire("process").ppid;
+    var cmd = String(cp.execSync("wmic process where processid=" + ppid + " get commandline /value", { windowsHide: true, timeout: 8000 }));
+    if (/s-(re|noui|reuse)/i.test(cmd) || /aerender/i.test(cmd)) hostIsRenderEngine = true;
+  } catch (e0) {}
   cs.evalScript("(function(){ try { return app.isRenderEngine ? \"1\" : \"0\"; } catch (e) { return \"0\"; } })()", function (isRender) {
-    if (String(isRender) === "1") {
+    if (String(isRender) === "1" || hostIsRenderEngine) {
       log("Render engine detected (aerender); bridge disabled in this instance.");
       setStatus("", "Disabled", "Render engine instance");
       return;

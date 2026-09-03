@@ -5,7 +5,7 @@
  * server restart (state of a running job from a dead server is reported as unknown).
  */
 import { spawn, execFile, type ChildProcess } from "node:child_process";
-import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
@@ -29,6 +29,8 @@ export interface RenderJobSpec {
   sound?: boolean;
   /** Free-form metadata (e.g. variant id) echoed back in status. */
   meta?: Record<string, unknown>;
+  /** When set, the job renders to `output` (a private temp path) and moves the result here on success. */
+  finalOutput?: string;
 }
 
 export interface RenderJob {
@@ -316,6 +318,17 @@ export function startJob(dataDir: string, spec: RenderJobSpec): RenderJob {
     job.endedAt = new Date().toISOString();
     refreshOutput(job);
     if (job.state !== "cancelled") job.state = code === 0 && job.outputExists ? "done" : "failed";
+    if (job.state === "done" && job.spec.finalOutput) {
+      try {
+        const produced = resolveOutputPath(job.spec.output);
+        mkdirSync(job.spec.finalOutput.replace(/[\/][^\/]*$/, ""), { recursive: true });
+        renameSync(produced, job.spec.finalOutput);
+        job.spec.output = job.spec.finalOutput;
+        refreshOutput(job);
+      } catch (e) {
+        job.errors.push(`move to final output failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
     if (job.state === "done") job.progress.percent = 100;
     children.delete(id);
     logStream.end();

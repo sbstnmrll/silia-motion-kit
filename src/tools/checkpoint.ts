@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, wri
 import { join, basename } from "node:path";
 import { argsVar } from "../bridge/index.js";
 import { err, ok, runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
+import { withAutoDialogs } from "../host/dialogs.js";
 
 interface CheckpointRecord {
   id: string;
@@ -138,7 +139,8 @@ export function getCheckpointTools(ctx: ToolContext): ToolRecord {
             var restoredTo = f.fsName;
             if (a.overwrite && a.original) { var of = __file(a.original); app.project.save(of); restoredTo = of.fsName; }
             else if (a.original) __warn("Project is now open from the checkpoint copy " + f.fsName + "; pass overwrite_original=true to write it back to " + a.original);
-            return __result({ revertedTo: restoredTo, inventory: inv() });`, { timeoutMs: 120_000, longRunning: true });
+            return __result({ revertedTo: restoredTo, inventory: inv() });`, { timeoutMs: 120_000, longRunning: true }).then((x) => x);
+          void withAutoDialogs;
           if (!r.success) return r;
           const d = r.data as { revertedTo: string; inventory: Inventory; warnings?: string[] };
           return ok({ checkpoint: cp.id, label: cp.label, revertedTo: d.revertedTo, comps: d.inventory.comps.length, warnings: d.warnings });

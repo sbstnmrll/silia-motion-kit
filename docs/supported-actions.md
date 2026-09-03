@@ -672,7 +672,7 @@ Data-driven versions: render N variants of one template comp. spec: {template:{a
 | `action` | enum: plan \| run \| status \| cancel |  |
 | `spec` | object (optional) |  |
 | `run_id` | string (optional) |  |
-| `parallel` | number (optional) | Concurrent aerender processes (default 2). |
+| `parallel` | number (optional) | Concurrent aerender processes (default 2; each renders into a private folder). |
 | `force` | boolean (optional) | run: discard unsaved changes when opening template.aep. |
 
 ### silia_captions
