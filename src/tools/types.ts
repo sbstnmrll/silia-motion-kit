@@ -10,6 +10,8 @@ export interface ToolContext {
   config: AeMcpConfig;
   capabilities: CapabilityConfig;
   audit: AuditSink;
+  /** Set by the server: register a tool at runtime (returns false when unsupported). */
+  registerDynamicTool?: (name: string, def: ToolDef) => boolean;
 }
 
 export interface ToolDef {

@@ -1,17 +1,21 @@
 # ae-mcp supported tools
 
-Generated 2026-09-03 from the tool registry. 27 tools.
+Generated 2026-09-03 from the tool registry. 44 tools.
 
 | Tool | Authority | Actions | Description |
 |---|---|---|---|
+| `ae_audio` | edit | `info`, `envelope`, `to_markers`, `silences`, `set_levels` | Audio inspection and audio-driven markers (analysis runs in Node with ffmpeg; AE cannot read samples). info: audio layers in a comp with source file and levels. envelope: RMS envelope of a layer's source (or any file pat |
 | `ae_batch` | edit | — | Run several tool calls as one unit. ops: [{tool, args}] executed in order; on_error stop (default) \| continue \| rollback (undo everything done so far). Because each op is its own undo group in AE, rollback undoes N gro |
+| `ae_checkpoint` | filesystem | `create`, `list`, `revert`, `diff`, `delete` | Transactional safety for the open project. create: save a full copy of the project (with a label) plus a structural inventory, then continue working on the original. list: checkpoints for this project. revert: close the  |
 | `ae_comp` | edit | `list`, `get`, `create`, `update`, `duplicate`, `delete`, `set_active`, `open` | Compositions. list: all comps. get: one comp with its layers. create: new comp (preset h1080p30\|v1080x1920p60\|v1080x1920p30\|... or explicit width/height/frame_rate; duration seconds; bg color). update: rename, duratio |
+| `ae_dialogs` | inspect | `list`, `ok`, `cancel`, `close` | List or answer modal dialogs open in After Effects (Windows). A modal blocks the scripting engine, so tool calls return ENGINE_BUSY until it is dismissed. list: dialogs with their text. ok / cancel / close: answer one (h |
 | `ae_ease` | edit | `preset`, `custom`, `from_cubic_bezier`, `interpolation`, `spatial`, `roving` | Easing and interpolation on existing keyframes. preset: apply a named ease (ease, ease_in, ease_out, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy, linear, hold) to keys (indices or all). custom: { |
 | `ae_effect` | edit | `list`, `apply`, `get_params`, `set_params`, `remove`, `reorder`, `toggle`, `duplicate`, `apply_preset` | Effects on a layer (effect parade). list; apply (matchName, display name, alias, or template name from ae_effects_catalog templates) with optional params {paramMatchNameOrName: value} and position; get_params (all parame |
 | `ae_effects_catalog` | inspect | `effects`, `resolve`, `templates`, `presets` | Installed effects and presets. effects: search app.effects by regex on display name or matchName (category included). resolve: map a display name or alias to the canonical matchName (includes corrections: Glow=ADBE Glo2, |
 | `ae_execute_extendscript` | unsafe-script | — | Run arbitrary ExtendScript inside After Effects (escape hatch when no dedicated tool fits). Gated: requires confirm=true AND the server started with AE_MCP_ALLOW_RAW=1 (or the unsafe-script capability). The code is wrapp |
 | `ae_expression` | edit | `get`, `set`, `set_batch`, `remove`, `validate`, `validate_all` | Expressions with validation. get; set (expression text or library name: wiggle, wiggle_slow, loop_cycle, loop_pingpong, loop_offset, loop_continue, inertia, bounce, spring, link_position, follow_with_delay, posterize_12, |
 | `ae_frame` | export | `capture`, `contact_sheet`, `stats`, `compare` | See what a comp actually renders. capture: one frame at time t as an image (PNG, or JPEG for smaller payloads); background '#0A0A0B' flattens alpha (recommended; avoids the black fringe of transparent captures). contact_ |
+| `ae_handoff` | filesystem | `mogrt`, `dynamic_link`, `alpha_render` | Prepare a Premiere Pro handoff. mogrt: given an exported .mogrt (or comp to export first) return the premiere-pro MCP call import_mogrt {mogrt_path, time_seconds, video_track_index}. dynamic_link: return the call import_ |
 | `ae_items` | edit | `list`, `get`, `import`, `import_sequence`, `replace`, `relink_missing`, `interpret`, `create_folder`, `move`, `rename`, `delete`, `find_missing` | Project panel items (footage, comps, folders, solids). list: with filter {type, nameRegex, folder, missingOnly}. get: one item by id or name. import: file (or folder path) with import_as footage\|comp\|comp_cropped\|proj |
 | `ae_keyframes` | edit | `set`, `add`, `remove`, `list`, `offset`, `scale_time`, `copy` | Keyframe CRUD on one property. set: write keys [{time, value, ease?, interpolation?}] (batched via setValuesAtTimes; existing keys at other times are kept). add: alias of set. remove: by times[], indices[], range {from,t |
 | `ae_layer_create` | edit | — | Create a layer of any kind in a comp: text (point text), box_text (paragraph box), shape (with primitives rect\|ellipse\|polygon\|star), solid, adjustment, null, camera, light, footage (from item id/name), comp (nested c |
@@ -20,6 +24,7 @@ Generated 2026-09-03 from the tool registry. 27 tools.
 | `ae_layer_update` | edit | `rename`, `set_timing`, `set_parent`, `set_blend`, `set_matte`, `set_3d`, `set_flags`, `reorder`, `duplicate`, `delete`, `set_quality`, `set_time_remap`, `set_label`, `set_comment` | Layer settings other than transform. rename; set_timing {in,out,start_time,stretch}; set_parent (parent layer or null, jump_to_parent keeps position); set_blend (mode name); set_matte {matte_layer, matte_type alpha\|alph |
 | `ae_markers` | edit | `list`, `add`, `add_bulk`, `update`, `remove`, `clear` | Comp or layer markers. list; add one {time, comment, duration, label, chapter, url}; add_bulk many; update by index or time; remove by index or time; clear all. Target a layer by passing layer, otherwise the comp marker  |
 | `ae_masks` | edit | `list`, `add`, `update`, `remove` | Layer masks. list; add a mask from shape {rect:[x,y,w,h]} \| {ellipse:[cx,cy,rx,ry]} \| {path:{vertices,inTangents,outTangents,closed}} with mode add\|subtract\|intersect\|lighten\|darken\|difference\|none, feather [x,y] |
+| `ae_mogrt` | export | `controllers`, `add`, `rename`, `set_template_name`, `remove`, `validate`, `export`, `open_panel` | Essential Graphics / Motion Graphics Templates. controllers: list the comp's EGP controllers. add: expose a layer property as a controller (name). rename; set_template_name; remove (by index); validate: checks controller |
 | `ae_precompose` | edit | — | Precompose layers into a new nested comp. move_all_attributes=true moves keyframes/effects into the precomp (only allowed for a single layer in newer AE); false leaves them on the new layer. |
 | `ae_project` | edit | `info`, `new`, `open`, `save`, `save_copy`, `close`, `set_settings` | Project lifecycle. info: summary (path, dirty, comps, missing footage). new: new empty project (fails if the current one is dirty unless force). open: open an .aep. save: save (optionally save-as to a new path). save_cop |
 | `ae_property_get` | inspect | `value`, `tree`, `search` | Read properties by matchName path. value: one property snapshot (value at time, keys, expression). tree: the property tree under a layer or a group path, to depth. search: find properties whose matchName or name matches  |
@@ -30,9 +35,43 @@ Generated 2026-09-03 from the tool registry. 27 tools.
 | `ae_status` | inspect | — | Health check and orientation. Always call this first. Reports whether the After Effects bridge is live (which AE version, which transport), the open project summary (path, dirty, comps, missing footage), the active comp, |
 | `ae_text` | edit | `get`, `set`, `set_keyframes`, `fonts` | Text layer document. get: TextDocument snapshot (text, font, size, fill, stroke, tracking, leading, justification, box). set: change any of those (font by PostScript name; read-back flags silent font substitution). set_k |
 | `ae_text_animator` | edit | `list`, `add`, `set_selector`, `set_property`, `remove`, `preset` | Text animators and range selectors. list; add an animator with properties {opacity, position:[x,y], scale:[x,y], rotation, tracking, blur:[x,y], fill:'#hex', line_spacing} and a range selector {start,end,offset, based_on |
+| `ae_tool_library` | filesystem | `save`, `update`, `list`, `get`, `run`, `delete`, `promote` | Self-growing tool library. After a raw ExtendScript works (ae_execute_extendscript), save it here with a name, description and param schema so it can be re-run by name (and promoted to a first-class MCP tool). save/updat |
 | `ae_undo` | edit | `undo`, `redo` | Undo or redo the last N undo groups in After Effects (each tool call is one group). Returns the active comp read-back after the operation. |
+| `ae_versions` | filesystem | `plan`, `run`, `status`, `cancel` | Data-driven versions: render N variants of one template comp. spec: {template:{aep?, comp}, assets:[{layer, type text\|color\|toggle\|image\|video\|number\|audio, value, property?}], variants:[{id, ...fields}], output:{d |
+| `silia_captions` | edit | `preview`, `build`, `to_markers` | Word-synced captions from a transcript. preview: parse the file (Whisper word JSON/JSONL in ms or seconds, or TURNS_TIMED in seconds), report format, speakers, word count, duration and turn overlaps without touching AE.  |
+| `silia_comp` | edit | — | Create an on-brand Silia comp: format h1080p30 \| v1080x1920p60 \| v1080x1920p30, grafito background solid (or transparent), optional safe-margin guide layers (shy, guide) and an optional head-black solid of head_black_s |
+| `silia_conform` | edit | `analyze`, `apply` | Frame-rate conform helper for mixed sources (59.94 / 60 / 30 / 24 fps). analyze: ffprobe each source file (or every footage item in the project) and report native fps, VFR, drift per minute against target_fps and the rec |
+| `silia_grade` | edit | — | Retro/mono grade on a shot head that dissolves off: adds an adjustment layer over the target layer's span with a look (retro_90s: lifted blacks, warm bias, desaturation via Levels + Tint + Hue/Saturation + Noise; mono: T |
+| `silia_lower_third` | edit | — | Build an on-brand lower third: rounded card (variant lime \| violeta \| rosa \| dark) with name (ES Klarheit Md) and optional role (Bk), positioned bottom-left or bottom-right inside the safe margin, with the confirmed e |
+| `silia_outro` | export | `plan`, `render` | Regenerate the Silia outro from its .aep (the source references ~40 files on an external drive; missing-footage layers render opaque white). plan: open the project (as a copy), list comps and every layer with missing foo |
+| `silia_push_25d` | edit | — | 2.5D push on a still/plate: precomposes the layer at 2x (pre-scale for subpixel motion, collapse transformations), then animates scale from 100 to 100+amount_pct (direction in) or the reverse (out) across the layer's dur |
+| `silia_tokens` | inspect | `get`, `resolve_ease` | Silia brand and motion tokens as data: colors (Lime #DEFF38 with black text, Violeta, Rosa, Grafito), video fonts (ES Klarheit Grotesk Bk/Md), formats (h1080p30, v1080x1920p60/30), durations (xs..xl), eases (power3_out e |
+| `silia_type` | edit | `title`, `kinetic`, `word_reveal` | On-brand typography. title: headline (Md, title_l/m/s) + optional sub (Bk) centered or aligned, with confirmed entry. kinetic: text layer with letter stagger (0.032 s per letter, 0.32 s, power3_out, rise 18 px). word_rev |
+| `silia_ui_composite` | edit | — | Composite Silia product UI over a plate from a spec (e.g. exported from Figma): rows (text lines), pills (rounded lime/violeta chips) and an optional cursor path, each as its own layer, stacked above plate_layer, enterin |
 
 ## Parameters
+
+### ae_audio
+
+Audio inspection and audio-driven markers (analysis runs in Node with ffmpeg; AE cannot read samples). info: audio layers in a comp with source file and levels. envelope: RMS envelope of a layer's source (or any file path) in windows of window_ms; returns a downsampled curve plus peak/duration. to_markers: place comp markers at detected onsets (threshold relative to mean, min_gap seconds) or at silences' ends. silences: ffmpeg silencedetect (noise_db, min_duration). set_levels: audio levels in dB (static or keyframes [{time, db}]).
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: info \| envelope \| to_markers \| silences \| set_levels |  |
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `layer` | union (optional) | Layer: 1-based index, layer name, or {id} (AE 22+), {index}, {name}. |
+| `file` | string (optional) | Analyse this file instead of a layer's source. |
+| `window_ms` | number (optional) |  |
+| `max_points` | number (optional) | envelope: downsample to this many points (default 400). |
+| `threshold` | number (optional) | to_markers: onset sensitivity as a fraction above the mean RMS (default 0.8). |
+| `min_gap` | number (optional) | to_markers: min seconds between markers (default 0.25). |
+| `mode` | enum: onsets \| silence_ends (optional) |  |
+| `label` | number (optional) |  |
+| `comment_prefix` | string (optional) |  |
+| `noise_db` | number (optional) | silences: threshold (default -35 dB). |
+| `min_duration` | number (optional) | silences: min silence length (default 0.4 s). |
+| `db` | number (optional) | set_levels: static level in dB. |
+| `keyframes` | array (optional) |  |
 
 ### ae_batch
 
@@ -43,6 +82,18 @@ Run several tool calls as one unit. ops: [{tool, args}] executed in order; on_er
 | `ops` | array |  |
 | `on_error` | enum: stop \| continue \| rollback (optional) |  |
 | `comp` | union (optional) | Comp used for the final read-back (default active). |
+
+### ae_checkpoint
+
+Transactional safety for the open project. create: save a full copy of the project (with a label) plus a structural inventory, then continue working on the original. list: checkpoints for this project. revert: close the current project WITHOUT saving and reopen the checkpoint copy (pass overwrite_original=true to also save it back over the original file path). diff: compare the current project structure (comps, layers, effects, keyframe counts) against a checkpoint. delete: remove a checkpoint. Use before risky multi-step edits; ae_undo covers small steps.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: create \| list \| revert \| diff \| delete |  |
+| `label` | string (optional) |  |
+| `id` | string (optional) | Checkpoint id (revert/diff/delete). Default: most recent. |
+| `overwrite_original` | boolean (optional) | revert: also save the checkpoint back to the original file path. |
+| `force` | boolean (optional) | revert: discard unsaved changes without asking (required if the project is dirty). |
 
 ### ae_comp
 
@@ -68,6 +119,15 @@ Compositions. list: all comps. get: one comp with its layers. create: new comp (
 | `resolution_factor` | array (optional) | [x,y] downsample, e.g. [2,2] = Half. |
 | `hide_shy` | boolean (optional) |  |
 | `include_layers` | boolean (optional) | get: include layer list (default true). |
+
+### ae_dialogs
+
+List or answer modal dialogs open in After Effects (Windows). A modal blocks the scripting engine, so tool calls return ENGINE_BUSY until it is dismissed. list: dialogs with their text. ok / cancel / close: answer one (hwnd) or all. Only answer dialogs whose text you have read and understood; prefer cancel/close for anything destructive.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: list \| ok \| cancel \| close (optional) |  |
+| `hwnd` | number (optional) | Target one dialog (from list). Default: all. |
 
 ### ae_ease
 
@@ -188,6 +248,22 @@ See what a comp actually renders. capture: one frame at time t as an image (PNG,
 | `reference_png` | string (optional) | compare: path of a reference image (else compare time vs time_b). |
 | `time_b` | number (optional) |  |
 | `keep_files` | boolean (optional) | Keep the PNG files on disk and return their paths (default true). |
+
+### ae_handoff
+
+Prepare a Premiere Pro handoff. mogrt: given an exported .mogrt (or comp to export first) return the premiere-pro MCP call import_mogrt {mogrt_path, time_seconds, video_track_index}. dynamic_link: return the call import_ae_comps {aep_path, comp_names} to Dynamic Link comps from the saved project (saves first). alpha_render: start an aerender job with an alpha-capable output module (default 'Lossless with Alpha', .avi; or 'TIFF Sequence with Alpha') and return the import_media call for the result. Every answer includes verify_with: get_full_sequence_info, because the Premiere connector has reported success on writes it did not perform.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: mogrt \| dynamic_link \| alpha_render |  |
+| `comp` | string (optional) | Comp name (export/render/link source). |
+| `comps` | array (optional) | dynamic_link: several comps. |
+| `mogrt_path` | string (optional) | mogrt: existing .mogrt (else exported from comp to this path). |
+| `output` | string (optional) | alpha_render: output path (.avi for Lossless with Alpha, folder/name_[#####].tif for TIFF). |
+| `om_template` | string (optional) |  |
+| `time_seconds` | number (optional) | Placement time in the Premiere sequence. |
+| `video_track_index` | number (optional) |  |
+| `sequence_name` | string (optional) |  |
 
 ### ae_items
 
@@ -366,6 +442,21 @@ Layer masks. list; add a mask from shape {rect:[x,y,w,h]} | {ellipse:[cx,cy,rx,r
 | `expansion` | number (optional) |  |
 | `inverted` | boolean (optional) |  |
 | `at` | number (optional) | Write shape/feather/opacity as keyframes at this time instead of static values. |
+
+### ae_mogrt
+
+Essential Graphics / Motion Graphics Templates. controllers: list the comp's EGP controllers. add: expose a layer property as a controller (name). rename; set_template_name; remove (by index); validate: checks controller count, unsupported property types, fonts installed, and comp format before export; export: write a .mogrt to path (validate first). open_panel: open the comp in the Essential Graphics panel. Returns controllers and the .mogrt path/size.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: controllers \| add \| rename \| set_template_name \| remove \| validate \| export \| open_panel |  |
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `layer` | union (optional) | Layer: 1-based index, layer name, or {id} (AE 22+), {index}, {name}. |
+| `path` | string (optional) | add: property path to expose. |
+| `name` | string (optional) | add/rename: controller name; set_template_name: template name. |
+| `index` | number (optional) | rename/remove: controller index. |
+| `mogrt_path` | string (optional) | export: absolute .mogrt path (folder created). |
+| `overwrite` | boolean (optional) |  |
 
 ### ae_precompose
 
@@ -546,6 +637,23 @@ Text animators and range selectors. list; add an animator with properties {opaci
 | `start_time` | number (optional) |  |
 | `rise_px` | number (optional) | letter_stagger/line_rise: vertical travel (default 18). |
 
+### ae_tool_library
+
+Self-growing tool library. After a raw ExtendScript works (ae_execute_extendscript), save it here with a name, description and param schema so it can be re-run by name (and promoted to a first-class MCP tool). save/update: {name, description, jsx, params:{p:{type,description,required,default}}, tags}; the jsx runs inside one undo group with `params.<p>` available and {{p}} placeholders replaced; it must return __result(...). list (optional tag/regex filter); get; run {name, params}; delete; promote {name, promoted:true|false} registers lib_<name> as a tool (available next session, or immediately when the server supports dynamic registration). Entries are deduplicated by content hash.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: save \| update \| list \| get \| run \| delete \| promote |  |
+| `name` | string (optional) |  |
+| `description` | string (optional) |  |
+| `jsx` | string (optional) |  |
+| `params` | record (optional) |  |
+| `tags` | array (optional) |  |
+| `example` | record (optional) |  |
+| `run_params` | record (optional) | run: parameter values. |
+| `promoted` | boolean (optional) |  |
+| `filter` | string (optional) | list: regex on name/description/tags. |
+
 ### ae_undo
 
 Undo or redo the last N undo groups in After Effects (each tool call is one group). Returns the active comp read-back after the operation.
@@ -554,3 +662,173 @@ Undo or redo the last N undo groups in After Effects (each tool call is one grou
 |---|---|---|
 | `action` | enum: undo \| redo |  |
 | `count` | number (optional) |  |
+
+### ae_versions
+
+Data-driven versions: render N variants of one template comp. spec: {template:{aep?, comp}, assets:[{layer, type text|color|toggle|image|video|number|audio, value, property?}], variants:[{id, ...fields}], output:{dir, om_template, name_template e.g. 'outro-{{id}}.mp4', rs_template}}. Asset values may contain {{field}} placeholders replaced per variant. plan: validate the spec against the open project (layer names, asset files, fonts) without changing anything. run: for each variant apply overrides, save a copy, start aerender (parallel up to `parallel`), then poll status with job ids. status: aggregate job states for a run id. Requires a saved project (or template.aep).
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: plan \| run \| status \| cancel |  |
+| `spec` | object (optional) |  |
+| `run_id` | string (optional) |  |
+| `parallel` | number (optional) | Concurrent aerender processes (default 2). |
+| `force` | boolean (optional) | run: discard unsaved changes when opening template.aep. |
+
+### silia_captions
+
+Word-synced captions from a transcript. preview: parse the file (Whisper word JSON/JSONL in ms or seconds, or TURNS_TIMED in seconds), report format, speakers, word count, duration and turn overlaps without touching AE. build: create caption layers in the comp. mode accumulate_turn (default, one box-text layer per turn whose source text grows word by word with hold keyframes at word onset + latency; only spoken words are ever on screen) | per_turn_hold (full turn text appears at turn start) | per_word_layers (one layer per word, for kinetic treatments). Styles per speaker via speaker_styles {name:{color, size, align, y}}. Returns layers, keyframe counts, first/last word and overlaps.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: preview \| build \| to_markers |  |
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `path` | string | Transcript file path. |
+| `mode` | enum: accumulate_turn \| per_turn_hold \| per_word_layers (optional) |  |
+| `latency` | number (optional) | Seconds after word onset (default 0.16). |
+| `fade` | number (optional) | Fade-in at turn start (default 0.2). |
+| `opacity` | number (optional) | Default 95. |
+| `box` | object (optional) | Caption box in comp px (default: 80% width, bottom safe area). |
+| `font` | string (optional) | Default ESKlarheitGrotesk-Md |
+| `size` | number (optional) | Default 28 at 1080p (scaled). |
+| `color` | string (optional) |  |
+| `speaker_styles` | record (optional) |  |
+| `gap_sec` | number (optional) | Turn split gap for flat word lists (default 1.2). |
+| `time_offset` | number (optional) | Shift all times by this many seconds (e.g. layer start). |
+| `max_chars` | number (optional) | Wrap: start a new text layer when a turn exceeds this many characters (default 160). |
+
+### silia_comp
+
+Create an on-brand Silia comp: format h1080p30 | v1080x1920p60 | v1080x1920p30, grafito background solid (or transparent), optional safe-margin guide layers (shy, guide) and an optional head-black solid of head_black_sec at the start (outro convention 0.43 s). Returns the CompRef and created layers.
+
+| Param | Type | Notes |
+|---|---|---|
+| `name` | string |  |
+| `format` | enum: h1080p30 \| v1080x1920p60 \| v1080x1920p30 (optional) |  |
+| `duration` | number (optional) | Seconds (default 10). |
+| `background` | enum: grafito \| black \| transparent (optional) |  |
+| `guides` | boolean (optional) |  |
+| `head_black_sec` | number (optional) |  |
+| `folder` | string (optional) |  |
+
+### silia_conform
+
+Frame-rate conform helper for mixed sources (59.94 / 60 / 30 / 24 fps). analyze: ffprobe each source file (or every footage item in the project) and report native fps, VFR, drift per minute against target_fps and the recommended strategy. apply: set conformFrameRate on footage items (interpret) so they play at target_fps, or enable frame blending on their layers. Strategies: interpret (exact 60→30/59.94→60 where the ratio is clean), time_remap (when duration must be preserved), frame_blend (off-ratio sources).
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: analyze \| apply |  |
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `sources` | array (optional) | File paths; default: all footage items in the project. |
+| `target_fps` | number (optional) | Default: comp fps. |
+| `strategy` | enum: interpret \| time_remap \| frame_blend (optional) |  |
+| `items` | array (optional) | apply: footage items (name/id); default: all with a mismatch. |
+
+### silia_grade
+
+Retro/mono grade on a shot head that dissolves off: adds an adjustment layer over the target layer's span with a look (retro_90s: lifted blacks, warm bias, desaturation via Levels + Tint + Hue/Saturation + Noise; mono: Tint 100%; lime_tint: Tritone toward lime), holds for hold_sec then fades its opacity to 0 over dissolve_sec. Returns the adjustment layer, effects and opacity keys.
+
+| Param | Type | Notes |
+|---|---|---|
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `layer` | union (optional) | Target layer (span and stacking). Default: whole comp. |
+| `look` | enum: retro_90s \| mono \| lime_tint (optional) |  |
+| `hold_sec` | number (optional) | Default 1.2 |
+| `dissolve_sec` | number (optional) | Default 0.8 |
+| `strength` | number (optional) | Max opacity of the grade (default 100). |
+| `ease` | union (optional) | Ease: preset name (linear, hold, ease, ease_in, ease_out, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy), {inInfluence,outInfluence,inSpeed,outSpeed}, or cubic-bezier {x1,y1,x2,y2}. |
+
+### silia_lower_third
+
+Build an on-brand lower third: rounded card (variant lime | violeta | rosa | dark) with name (ES Klarheit Md) and optional role (Bk), positioned bottom-left or bottom-right inside the safe margin, with the confirmed entry (opacity 0→1, Y +18→0, power3_out, 0.32 s) and exit. All elements are parented to a control null so it can be moved as one. Returns the created layers and their in/out.
+
+| Param | Type | Notes |
+|---|---|---|
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `name` | string |  |
+| `role` | string (optional) |  |
+| `variant` | enum: lime \| violeta \| rosa \| dark (optional) |  |
+| `in_time` | number (optional) | Default comp time. |
+| `duration` | number (optional) | Seconds on screen (default 4). |
+| `position` | enum: left \| right (optional) |  |
+| `scale` | number (optional) | Relative size multiplier (default 1). |
+| `entry` | enum: confirmed \| slide \| none (optional) |  |
+| `exit` | enum: confirmed \| none (optional) |  |
+
+### silia_outro
+
+Regenerate the Silia outro from its .aep (the source references ~40 files on an external drive; missing-footage layers render opaque white). plan: open the project (as a copy), list comps and every layer with missing footage, and propose which layers to disable. render: apply the plan (disable missing layers, optionally enforce head black of head_black_sec by trimming/adding a black solid), save a copy and start aerender for the chosen orientation(s) with verification expectations (duration, head black 0.43 s). Returns job ids to poll with ae_render status.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: plan \| render |  |
+| `aep` | string | Path to the outro .aep |
+| `comp_horizontal` | string (optional) | Default: first comp matching /horizontal/i |
+| `comp_vertical` | string (optional) | Default: first comp matching /vertical/i |
+| `orientation` | enum: h \| v \| both (optional) |  |
+| `head_black_sec` | number (optional) | Default 0.43 |
+| `disable_missing` | boolean (optional) | Default true |
+| `disable_layers` | array (optional) | Extra layer names to disable. |
+| `om_template` | string (optional) | Default "H.264 - Match Render Settings - 40 Mbps" |
+| `output_dir` | string (optional) | Default <dataDir>/outro |
+| `force` | boolean (optional) | Discard unsaved changes in the currently open project. |
+
+### silia_push_25d
+
+2.5D push on a still/plate: precomposes the layer at 2x (pre-scale for subpixel motion, collapse transformations), then animates scale from 100 to 100+amount_pct (direction in) or the reverse (out) across the layer's duration (or in_time/duration) with the given ease (default power2_out). Optional parallax: extra layers moved by ratios of the push. Returns the keyframes.
+
+| Param | Type | Notes |
+|---|---|---|
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `layer` | union | Layer: 1-based index, layer name, or {id} (AE 22+), {index}, {name}. |
+| `amount_pct` | number (optional) | Default 5 (Silia range 4.5–6). |
+| `direction` | enum: in \| out (optional) |  |
+| `in_time` | number (optional) |  |
+| `duration` | number (optional) |  |
+| `ease` | union (optional) | Ease: preset name (linear, hold, ease, ease_in, ease_out, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy), {inInfluence,outInfluence,inSpeed,outSpeed}, or cubic-bezier {x1,y1,x2,y2}. |
+| `pre_scale` | number (optional) | Default 2. |
+| `anchor` | array (optional) | Push origin in comp pixels (default center). |
+
+### silia_tokens
+
+Silia brand and motion tokens as data: colors (Lime #DEFF38 with black text, Violeta, Rosa, Grafito), video fonts (ES Klarheit Grotesk Bk/Md), formats (h1080p30, v1080x1920p60/30), durations (xs..xl), eases (power3_out etc. as cubic-bezier and KeyframeEase influences), named patterns (confirmed_entry, card_travel, zoom_punch, letter_stagger, word_reveal, push_25d), the five orb color ramps, type scale and the rules. resolve_ease converts a token to KeyframeEase influences.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: get \| resolve_ease (optional) |  |
+| `token` | string (optional) | resolve_ease: e.g. power3_out |
+
+### silia_type
+
+On-brand typography. title: headline (Md, title_l/m/s) + optional sub (Bk) centered or aligned, with confirmed entry. kinetic: text layer with letter stagger (0.032 s per letter, 0.32 s, power3_out, rise 18 px). word_reveal: one text layer whose source text accumulates words at given times [{w,t}] with 0.16 s latency and 0.2 s fade to 95% (hold keys + per-word opacity via animator is approximated with source-text keyframes). All use ES Klarheit Grotesk; color defaults to white on dark, black on lime.
+
+| Param | Type | Notes |
+|---|---|---|
+| `action` | enum: title \| kinetic \| word_reveal |  |
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `text` | string (optional) |  |
+| `sub` | string (optional) |  |
+| `size` | enum: title_l \| title_m \| title_s \| body_l \| body_m (optional) |  |
+| `color` | string (optional) | Hex; default white (or black when on lime). |
+| `align` | enum: left \| center \| right (optional) |  |
+| `position` | array (optional) |  |
+| `in_time` | number (optional) |  |
+| `duration` | number (optional) |  |
+| `words` | array (optional) | word_reveal: words with onset times (seconds). |
+| `latency` | number (optional) |  |
+| `ease` | union (optional) | Ease: preset name (linear, hold, ease, ease_in, ease_out, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy), {inInfluence,outInfluence,inSpeed,outSpeed}, or cubic-bezier {x1,y1,x2,y2}. |
+| `on_lime` | boolean (optional) |  |
+
+### silia_ui_composite
+
+Composite Silia product UI over a plate from a spec (e.g. exported from Figma): rows (text lines), pills (rounded lime/violeta chips) and an optional cursor path, each as its own layer, stacked above plate_layer, entering with the confirmed pattern and a stagger. spec: {panel:{x,y,width,height,radius,color,opacity}, rows:[{text,x,y,size,color,weight}], pills:[{text,x,y,color,textColor}], cursor:{path:[[x,y,t],...]}}. Returns created layers and the entry timeline.
+
+| Param | Type | Notes |
+|---|---|---|
+| `comp` | union (optional) | Composition: "active" (default), numeric item id, comp name, or {id}\|{name}. |
+| `plate_layer` | union (optional) | Layer: 1-based index, layer name, or {id} (AE 22+), {index}, {name}. |
+| `spec` | object |  |
+| `in_time` | number (optional) |  |
+| `duration` | number (optional) |  |
+| `stagger` | number (optional) | Seconds between element entries (default 0.06). |
+| `ease` | union (optional) | Ease: preset name (linear, hold, ease, ease_in, ease_out, ease_in_out, power2_out, power3_out, power3_in_out, expo_out, snappy), {inInfluence,outInfluence,inSpeed,outSpeed}, or cubic-bezier {x1,y1,x2,y2}. |

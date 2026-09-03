@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { join } from "node:path";
+import { copyFileSync } from "node:fs";
 import { argsVar } from "../bridge/index.js";
 import { compRef } from "./refs.js";
 import { err, ok, runScript, safe, type ToolContext, type ToolRecord } from "./types.js";
@@ -155,12 +156,18 @@ export function getRenderTools(ctx: ToolContext): ToolRecord {
           const d = probe.data as Record<string, unknown>;
           compMeta = d.comp as Record<string, unknown>;
           if ((d.missing as number) > 0) ctx.audit({ operationId: "render", action: "ae_render", outcome: "started", timestamp: new Date().toISOString(), details: { missingFootage: d.missing } });
+          const stamp = Date.now().toString(36);
           if (a.save_copy_first !== false || !d.file) {
-            const copyPath = join(dataDir, "jobs", `render_${Date.now().toString(36)}.aep`);
+            const copyPath = join(dataDir, "jobs", `render_${stamp}.aep`);
             const saved = await runScript(ctx, `${argsVar("a", { path: copyPath })} var p = app.project; var orig = p.file; var f = __file(a.path); __ensureFolder(f.parent.fsName); p.save(f); if (orig) app.open(orig); return __result({ copy: f.fsName, original: orig ? orig.fsName : null });`, { timeoutMs: 120_000, longRunning: true });
             if (!saved.success) return saved;
             project = (saved.data as { copy: string }).copy;
           } else project = d.file as string;
+          // aerender must never open a file the GUI instance also has open (it stalls on the lock):
+          // always render a byte copy that no After Effects instance holds.
+          const renderCopy = join(dataDir, "jobs", `render_${stamp}_aerender.aep`);
+          copyFileSync(project, renderCopy);
+          project = renderCopy;
         }
         let job;
         try {

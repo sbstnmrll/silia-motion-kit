@@ -5,7 +5,8 @@ import { execFileSync } from "node:child_process";
 import { argsVar } from "../bridge/index.js";
 import { findAeInstalls } from "../bridge/poller-transport.js";
 import { CAPABILITIES } from "../security/index.js";
-import { runScript, ok, safe, type ToolContext, type ToolRecord } from "./types.js";
+import { runScript, ok, err, safe, type ToolContext, type ToolRecord } from "./types.js";
+import { aeDialogs } from "../host/dialogs.js";
 
 function which(cmd: string): string | null {
   try {
@@ -19,6 +20,20 @@ function which(cmd: string): string | null {
 
 export function getHealthTools(ctx: ToolContext): ToolRecord {
   return {
+    ae_dialogs: {
+      description:
+        "List or answer modal dialogs open in After Effects (Windows). A modal blocks the scripting engine, so tool calls return ENGINE_BUSY until it is dismissed. list: dialogs with their text. ok / cancel / close: answer one (hwnd) or all. Only answer dialogs whose text you have read and understood; prefer cancel/close for anything destructive.",
+      parameters: {
+        action: z.enum(["list", "ok", "cancel", "close"]).optional(),
+        hwnd: z.number().int().optional().describe("Target one dialog (from list). Default: all."),
+      },
+      handler: safe(async (a: { action?: "list" | "ok" | "cancel" | "close"; hwnd?: number }) => {
+        if (process.platform !== "win32") return err("ae_dialogs is Windows-only", "UNSUPPORTED");
+        const r = await aeDialogs(a.action ?? "list", a.hwnd);
+        if (!r.pid) return ok({ afterEffectsRunning: false, dialogs: [] });
+        return ok({ afterEffectsRunning: true, pid: r.pid, count: r.dialogs.length, remaining: r.remaining, dialogs: r.dialogs });
+      }),
+    },
     ae_status: {
       description:
         "Health check and orientation. Always call this first. Reports whether the After Effects bridge is live (which AE version, which transport), the open project summary (path, dirty, comps, missing footage), the active comp, the enabled authority profile, and with deep=true also the render/output templates, fonts of interest, aerender/ffmpeg availability and CEP install state.",

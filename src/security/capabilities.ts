@@ -51,6 +51,7 @@ const INSPECT_TOOL_NAMES = new Set([
   "ae_property_get",
   "ae_effects_catalog",
   "silia_tokens",
+  "ae_dialogs",
 ]);
 
 const FILESYSTEM_TOOL_NAMES = new Set(["ae_checkpoint", "ae_tool_library", "ae_versions", "ae_lottie", "ae_handoff"]);
@@ -103,6 +104,7 @@ const ACTION_CAPABILITIES: Readonly<Record<string, Readonly<Record<string, reado
   silia_outro: { plan: ["inspect", "filesystem"], render: ["export", "filesystem"] },
   silia_conform: { analyze: ["inspect", "filesystem"] },
   ae_lottie: { detect: ["inspect"], export: ["export", "filesystem"] },
+  ae_dialogs: { list: ["inspect"], ok: ["edit"], cancel: ["edit"], close: ["edit"] },
 };
 
 export function capabilityForTool(toolName: string): Capability {

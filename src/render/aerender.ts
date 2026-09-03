@@ -8,6 +8,8 @@ import { spawn, execFile, type ChildProcess } from "node:child_process";
 import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 import { findAeInstalls, type AeInstall } from "../bridge/poller-transport.js";
 
 export type JobState = "queued" | "running" | "done" | "failed" | "cancelled" | "unknown";
@@ -183,6 +185,50 @@ function tcToSeconds(tc: string, fps: number): number | null {
   return parseInt(m[1], 10) * 3600 + parseInt(m[2], 10) * 60 + parseInt(m[3], 10) + parseInt(m[4], 10) / (fps || 30);
 }
 
+/**
+ * MCP clients often start the server with a minimal environment. The After Effects
+ * render engine hangs at "Launching After Effects..." when standard Windows variables
+ * (ProgramData, CommonProgramFiles, ComSpec, TMP, windir...) are missing, so fill them in.
+ */
+export function renderEnvironment(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...base };
+  if (process.platform !== "win32") return env;
+  const sysDrive = env.SystemDrive || env.SYSTEMDRIVE || "C:";
+  const sysRoot = env.SystemRoot || env.SYSTEMROOT || env.windir || `${sysDrive}\Windows`;
+  const defaults: Record<string, string> = {
+    SystemDrive: sysDrive,
+    SystemRoot: sysRoot,
+    windir: sysRoot,
+    ComSpec: `${sysRoot}\System32\cmd.exe`,
+    ProgramData: `${sysDrive}\ProgramData`,
+    ALLUSERSPROFILE: `${sysDrive}\ProgramData`,
+    ProgramFiles: env.ProgramFiles || env.PROGRAMFILES || `${sysDrive}\Program Files`,
+    ProgramW6432: env.ProgramFiles || env.PROGRAMFILES || `${sysDrive}\Program Files`,
+    "ProgramFiles(x86)": `${sysDrive}\Program Files (x86)`,
+    CommonProgramFiles: `${sysDrive}\Program Files\Common Files`,
+    CommonProgramW6432: `${sysDrive}\Program Files\Common Files`,
+    "CommonProgramFiles(x86)": `${sysDrive}\Program Files (x86)\Common Files`,
+    PUBLIC: `${sysDrive}\Users\Public`,
+    OS: "Windows_NT",
+    PATHEXT: ".COM;.EXE;.BAT;.CMD;.VBS;.JS;.MSC",
+    NUMBER_OF_PROCESSORS: String(require("node:os").cpus().length || 4),
+    PROCESSOR_ARCHITECTURE: env.PROCESSOR_ARCHITECTURE || "AMD64",
+  };
+  if (env.USERPROFILE) {
+    defaults.HOMEDRIVE = env.HOMEDRIVE || env.USERPROFILE.slice(0, 2);
+    defaults.HOMEPATH = env.HOMEPATH || env.USERPROFILE.slice(2);
+    defaults.LOCALAPPDATA = env.LOCALAPPDATA || `${env.USERPROFILE}\AppData\Local`;
+    defaults.APPDATA = env.APPDATA || `${env.USERPROFILE}\AppData\Roaming`;
+    defaults.TEMP = env.TEMP || env.TMP || `${env.USERPROFILE}\AppData\Local\Temp`;
+    defaults.TMP = env.TMP || defaults.TEMP;
+    defaults.USERNAME = env.USERNAME || env.USERPROFILE.split(/[\/]/).pop() || "user";
+  }
+  const lowerKeys = new Set(Object.keys(env).map((k) => k.toLowerCase()));
+  for (const [k, v] of Object.entries(defaults)) if (!lowerKeys.has(k.toLowerCase())) env[k] = v;
+  if (!/system32/i.test(env.PATH || env.Path || "")) env.PATH = `${env.PATH || env.Path || ""};${sysRoot}\System32;${sysRoot};${sysRoot}\System32\Wbem`;
+  return env;
+}
+
 export function startJob(dataDir: string, spec: RenderJobSpec): RenderJob {
   const install = pickInstall(spec.aeYear);
   const args = ["-project", spec.project, "-comp", spec.comp, "-output", spec.output];
@@ -214,8 +260,10 @@ export function startJob(dataDir: string, spec: RenderJobSpec): RenderJob {
   };
   jobs.set(id, job);
 
-  // detached: the render must survive the MCP server exiting (clients close servers freely).
-  const child = spawn(install.aerender, args, { windowsHide: true, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+  // windowsHide MUST stay false: with a hidden console aerender stalls forever at
+  // "Launching After Effects..." (verified 2026-09-03 on AE 2026). detached lets the
+  // render survive the MCP server exiting (clients close servers freely).
+  const child = spawn(install.aerender, args, { windowsHide: false, detached: true, stdio: ["ignore", "pipe", "pipe"], env: renderEnvironment() });
   children.set(id, child);
   const logPath = join(jobsDir(dataDir), `${id}.log`);
   const logStream = createWriteStream(logPath, { flags: "a" });
@@ -234,10 +282,10 @@ export function startJob(dataDir: string, spec: RenderJobSpec): RenderJob {
     if (job.lastLines.length > 40) job.lastLines.shift();
     let m: RegExpExecArray | null;
     if ((m = /Frame Rate:\s*([\d.]+)/.exec(l))) job.progress.fps = parseFloat(m[1]);
-    if ((m = /Duration:\s*(\d+:\d+:\d+:\d+)/.exec(l))) {
-      job.progress.durationTc = m[1];
-      const secs = tcToSeconds(m[1], job.progress.fps ?? 30);
-      if (secs !== null && job.progress.fps) job.progress.totalFrames = Math.round(secs * job.progress.fps);
+    if ((m = /Duration:s*(d+:d+:d+:d+)/.exec(l))) job.progress.durationTc = m[1];
+    if (job.progress.durationTc && job.progress.fps && job.progress.totalFrames === null) {
+      const secs = tcToSeconds(job.progress.durationTc, job.progress.fps);
+      if (secs !== null) job.progress.totalFrames = Math.round(secs * job.progress.fps);
     }
     if ((m = /PROGRESS:\s+\d+:\d+:\d+:\d+\s+\((\d+)\)/.exec(l))) {
       job.progress.frame = parseInt(m[1], 10);

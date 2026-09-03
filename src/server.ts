@@ -13,7 +13,7 @@ import { debugLog } from "./config.js";
 import { createTransport } from "./bridge/index.js";
 import { guardToolHandler, isToolPermitted, resolveCapabilities, stderrAuditSink, type CapabilityConfig } from "./security/index.js";
 import { annotationsForTool, structuredToolResult } from "./workflows/tool-metadata.js";
-import type { ToolContext, ToolRecord } from "./tools/types.js";
+import type { ToolContext, ToolDef, ToolRecord } from "./tools/types.js";
 import { getHealthTools, setServerVersion } from "./tools/health.js";
 import { getScriptingTools, EXTENDSCRIPT_GUIDE } from "./tools/scripting.js";
 import { getCoreTools } from "./tools/core.js";
@@ -81,13 +81,11 @@ export function createServer(config: AeMcpConfig, options: ServerOptions = {}): 
   const ctx = createContext(config, capabilities);
   const server = new McpServer({ name: "ae-mcp", version: SERVER_VERSION }, { instructions: AE_INSTRUCTIONS });
 
-  const tools = collectTools(ctx);
-  let withheld = 0;
-  for (const [name, tool] of Object.entries(tools)) {
-    if (!isToolPermitted(name, capabilities)) {
-      withheld++;
-      continue;
-    }
+  const registered = new Set<string>();
+  const registerOne = (name: string, tool: ToolDef): boolean => {
+    if (registered.has(name)) return false;
+    if (!isToolPermitted(name, capabilities)) return false;
+    registered.add(name);
     const guarded = guardToolHandler(name, tool.handler, capabilities);
     server.registerTool(
       name,
@@ -135,7 +133,13 @@ export function createServer(config: AeMcpConfig, options: ServerOptions = {}): 
         }
       },
     );
-  }
+    return true;
+  };
+
+  ctx.registerDynamicTool = (name, def) => registerOne(name, def);
+  const tools = collectTools(ctx);
+  let withheld = 0;
+  for (const [name, tool] of Object.entries(tools)) if (!registerOne(name, tool)) withheld++;
   if (withheld > 0) debugLog(`Withheld ${withheld} tool(s) not permitted by capability profile ${[...capabilities.capabilities].join(",")}`);
 
   registerResources(server, ctx);
