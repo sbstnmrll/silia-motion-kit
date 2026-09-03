@@ -9,6 +9,8 @@ import { DISTANCE_FORMULA, DURATION_ATTRIBUTION, DURATION_SCALES, distanceBand, 
 import { STAGGER_ATTRIBUTION, STAGGER_FLOOR_MS, STAGGER_TABLE, staggerFor } from "../motion/staggers.js";
 import { ARCHETYPES, DEVICES, ENTRANCE_ORDER, INTENTS, REGISTERS, SILIA_ARCHETYPE } from "../motion/taxonomy.js";
 import { HOUSE_STYLES } from "../motion/house-style.js";
+import { LEGIBILITY_RULES, safeAreas } from "../motion/typography.js";
+import { RUBRIC } from "../motion/rubric.js";
 
 const json = (uri: URL, data: unknown) => ({ contents: [{ uri: uri.href, mimeType: "application/json", text: JSON.stringify(data, null, 2) }] });
 
@@ -142,4 +144,28 @@ export function registerMotionResources(server: McpServer): void {
     },
   );
   server.registerResource("motion-house-style-saas-video", "motion://house-style/saas-video", { description: "Silia SaaS / product video house style (opinion: hero reveals, UI entrances, staggers, zoom-cuts, glow rules, text rest).", mimeType: "application/json" }, async (uri) => json(uri, HOUSE_STYLES["saas-video"]));
+  server.registerResource(
+    "motion-typography-legibility",
+    "motion://typography/legibility",
+    { description: "Text-in-motion legibility rules (min size, chars/line, lines, CPS, hold, caption event bounds) and title/action safe areas for common comp sizes.", mimeType: "application/json" },
+    async (uri) =>
+      json(uri, {
+        rules: LEGIBILITY_RULES,
+        safeAreas: { "1920x1080": safeAreas(1920, 1080), "1080x1920": safeAreas(1080, 1920), "1080x1080": safeAreas(1080, 1080), "3840x2160": safeAreas(3840, 2160) },
+        tool: "ae_text action=legibility",
+        attribution: "Numbers from legibility.info (rules for text in videos), Netflix Timed Text Style Guide, BBC Subtitle Guidelines; safe areas per SMPTE/EBU practice. Prose is ours.",
+      }),
+  );
+  server.registerResource(
+    "motion-rubric-contact-sheet",
+    "motion://rubric/contact-sheet",
+    { description: "Atomic binary critique rubric: auto-evaluated items (from the keyframe dump) and vision items (judged from the contact sheet + onion skin).", mimeType: "application/json" },
+    async (uri) =>
+      json(uri, {
+        items: RUBRIC,
+        groups: ["timing", "easing", "choreography", "legibility", "spatial", "intent"],
+        howTo: "Run ae_frame action=critique. Fix only failed items with the numeric corrections given, re-run once, then judge the unverifiable items from the images. Stop after two passes.",
+        attribution: "Design after WebVR (arXiv 2603.13391) atomic rubrics and AniMINT (arXiv 2604.26148) findings on VLM animation judgement; both CC BY 4.0.",
+      }),
+  );
 }
