@@ -4,9 +4,13 @@ param(
 )
 
 # Installs the Silia AE MCP CEP bridge into the per-user CEP extensions folder and
-# enables PlayerDebugMode (REG_SZ "1") so After Effects loads the unsigned bundle.
-# Verified 2026-09-02: After Effects 2026 (26.3) loads the unsigned bundle with this
-# key set; no ZXP signature needed. Adapted from premiere-pro-mcp (MIT).
+# enables PlayerDebugMode (REG_SZ "1"), which After Effects requires to load a
+# self-signed extension.
+# By default it installs the SIGNED package artifacts\AeMcpCEP.zxp (extracted with
+# META-INF\signatures.xml + mimetype intact). -Unsigned copies the raw cep-plugin\
+# folder instead: that stopped working on After Effects 2026 on 2026-09-08, when AE
+# began enforcing the signature ("Signature verification failed" in %TEMP%\CEP12-AEFT.log).
+# Adapted from premiere-pro-mcp (MIT).
 
 $ErrorActionPreference = "Stop"
 

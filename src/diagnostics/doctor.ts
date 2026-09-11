@@ -49,7 +49,7 @@ export function collectLocalDoctor(config: AeMcpConfig, version = "unknown"): Do
   for (const v of [11, 12, 13, 14]) {
     const val = regString(`HKCU\\Software\\Adobe\\CSXS.${v}`, "PlayerDebugMode");
     playerDebugMode[`CSXS.${v}`] = val;
-    if (v === 12 && val !== "REG_SZ:1") problems.push("HKCU\\Software\\Adobe\\CSXS.12 PlayerDebugMode must be REG_SZ \"1\" for the unsigned bundle to load.");
+    if (v === 12 && val !== "REG_SZ:1") problems.push("HKCU\\Software\\Adobe\\CSXS.12 PlayerDebugMode must be REG_SZ \"1\" for the CEP bridge to load.");
   }
 
   let lastLog: string | null = null;
@@ -68,7 +68,7 @@ export function collectLocalDoctor(config: AeMcpConfig, version = "unknown"): Do
   } catch {
     // ignore
   }
-  if (signatureFailures.length) problems.push("After Effects rejected the bundle signature; run ae-mcp --sign-cep then --install-cep.");
+  if (signatureFailures.length) problems.push("After Effects rejected the bundle signature; with AE closed run ae-mcp --sign-cep then --install-cep. Note this reads the historical CEP log, so it still reports a failure that is already fixed until the log rolls over.");
 
   const bridge = listVersionDirs(config.bridgeRoot).map((d) => {
     const listeners = readPresences(d.dir).map((p) => ({ source: String(p.source), appVersion: String(p.appVersion), ageMs: p.ageMs ?? null, state: String(p.state) }));

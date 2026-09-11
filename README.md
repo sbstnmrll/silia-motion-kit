@@ -8,18 +8,28 @@ Built for Silia / Creai as an internal tool; MIT licensed; adapted in part from 
 
 - Windows 10/11, After Effects 2025 or 2026 (verified on 26.3), Node 20.19+
 - `ffmpeg` / `ffprobe` on PATH for render verification and audio analysis (WinGet build works)
-- No ZXP signing needed: After Effects loads the unsigned CEP bridge when `PlayerDebugMode` is set (the installer does this)
+- The CEP bridge **must be signed**: since 2026-09-08 After Effects 2026 rejects the unsigned bundle even with `PlayerDebugMode` set (`Signature verification failed` in `%TEMP%\CEP12-AEFT.log`). This repo ships a ready-made self-signed `artifacts/AeMcpCEP.zxp`, which is what `--install-cep` installs — no signing step on your side unless you change `cep-plugin/`
 
 ## Install
 
+New here? [`INSTALL.md`](INSTALL.md) walks through it (in Spanish), or open Claude Code in this folder and ask it to install the MCP — [`CLAUDE.md`](CLAUDE.md) tells it exactly how.
+
+With After Effects **closed**:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1   # checks Node/ffmpeg, npm ci, build, install-cep, doctor
+```
+
+Or step by step:
+
 ```bash
-npm install
+npm ci
 npm run build
-node dist/index.js --install-cep      # copies cep-plugin to %APPDATA%\Adobe\CEP\extensions\AeMcpCEP, sets PlayerDebugMode
+node dist/index.js --install-cep      # installs the signed artifacts/AeMcpCEP.zxp into %APPDATA%\Adobe\CEP\extensions\AeMcpCEP, sets PlayerDebugMode
 node dist/index.js --doctor           # checks installs, registry, bridge dirs, ffmpeg
 ```
 
-Restart After Effects fully. The bridge auto-starts (an invisible "headless" extension); `Window > Extensions > Silia AE MCP` shows a status panel.
+Restart After Effects fully. The bridge auto-starts (an invisible "headless" extension); `Window > Extensions > Silia AE MCP` shows a status panel. Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
 
 Register the server:
 
@@ -109,4 +119,5 @@ Lessons that cost time (all verified on AE 2026):
 - `comp.saveFrameToPng` writes asynchronously (~100 ms): poll the file size before restoring layers.
 - `aerender.exe` hangs at "Launching After Effects…" when spawned with a hidden console or a minimal environment; never render an `.aep` the GUI has open.
 - The render engine also loads CEP extensions: the panel disables itself when `app.isRenderEngine`.
+- After Effects 2026 enforces the CEP signature (since 2026-09-08): what loads is a **self-signed** `.zxp` installed with `META-INF/signatures.xml` + `mimetype` intact. `PlayerDebugMode` is still required, as REG_SZ `"1"` — a DWORD is ignored. `--diagnose-cep` reads the *historical* CEP log, so it keeps reporting a failure after a successful fix.
 - `exportAsMotionGraphicsTemplate` shows a font-sync warning for non-Adobe fonts; `ae_dialogs` answers it with an Enter key message (`WM_COMMAND IDOK` is ignored by AE's custom buttons).

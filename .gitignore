@@ -1,15 +1,23 @@
 node_modules/
 dist/
 coverage/
-artifacts/*.zxp
-artifacts/*.p12
 .env
 .env.local
 *.log
 .vitest/
 
+# The signed bundle IS versioned: it is what --install-cep installs, and it is what
+# makes the bridge load on After Effects 2026 (which rejects unsigned bundles).
+# The private key never is.
+artifacts/*.p12
+
 # Bridge scratch and checkpoints never belong in the repo
 .ae-mcp/
+
+# Windows drops these into the repo when a script writes to a bad absolute path
+ProgramData/
+UsersPublic/
+NVIDIA Corporation/
 
 # Templates ARE versioned (this repo has its own .gitignore precisely so the
 # parent editorial/ rule `**/*.aep` does not swallow them).
