@@ -13,7 +13,7 @@ Tiempo real de instalación: **10–15 minutos**, casi todo esperando a `npm` y 
 | Windows 10 u 11 | — | El puente CEP es Windows-only por ahora |
 | After Effects 2025 o 2026 | Que abra | — |
 | Node.js 20.19 o superior | `node -v` en PowerShell | Instala el **LTS** de [nodejs.org](https://nodejs.org) |
-| Git | `git --version` | [git-scm.com](https://git-scm.com) |
+| Git *(sólo si clonas el repo; con el `.zip` no hace falta)* | `git --version` | [git-scm.com](https://git-scm.com) |
 | ffmpeg y ffprobe *(recomendado)* | `ffmpeg -version` | `winget install Gyan.FFmpeg` — sin esto los renders salen igual, pero sin verificación automática |
 | Fuente **ES Klarheit Grotesk** (Bk y Md) *(sólo para las recetas de marca Silia)* | Búscala en el panel de fuentes de AE | Pídele los `.otf` a Sebastián e instálalos en Windows. Sin ella, AE sustituye la fuente en silencio |
 
@@ -21,7 +21,11 @@ Tiempo real de instalación: **10–15 minutos**, casi todo esperando a `npm` y 
 
 ---
 
-## 1. Clonar el repositorio
+## 1. Poner el código en tu máquina
+
+**Si te llegó como `.zip`:** descomprímelo y ya está; no hace falta Git. Salta al paso 2.
+
+**Si tienes acceso al repositorio:**
 
 ```bash
 git clone <URL del repo privado> ae-mcp
@@ -29,6 +33,8 @@ cd ae-mcp
 ```
 
 Guárdalo en una ruta estable (por ejemplo `C:\Users\<tu usuario>\dev\ae-mcp`): esa ruta queda escrita en la configuración de Claude, así que mover la carpeta después rompe el registro.
+
+> Si descomprimiste un `.zip` descargado, Windows marca los scripts como venidos de internet. Si PowerShell se queja al correrlos, quítales la marca una vez: `Get-ChildItem scripts*.ps1 | Unblock-File`.
 
 ---
 
@@ -110,10 +116,11 @@ Lo que Claude necesita saber para trabajar bien ya viene en el repo (`.claude/sk
 
 ## Actualizar a una versión nueva
 
+Con el repositorio: `git pull`. Con un `.zip` nuevo: descomprímelo **encima** de la carpeta anterior, en la misma ruta (si cambia la ruta hay que volver a registrar el MCP). En los dos casos, después:
+
 ```powershell
-git pull
 npm ci
 npm run build
 ```
 
-Y reinicia Claude. Sólo hace falta volver a instalar el puente (`--install-cep`, con AE cerrado) si cambió algo dentro de `cep-plugin/` — el mensaje del commit lo dirá.
+Y reinicia Claude. Sólo hace falta volver a instalar el puente (`--install-cep`, con After Effects cerrado) si cambió algo dentro de `cep-plugin/` — quien te mande la versión nueva te lo dirá.
