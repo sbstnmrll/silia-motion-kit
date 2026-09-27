@@ -11,6 +11,7 @@ import { ARCHETYPES, DEVICES, ENTRANCE_ORDER, INTENTS, REGISTERS, SILIA_ARCHETYP
 import { HOUSE_STYLES } from "../motion/house-style.js";
 import { LEGIBILITY_RULES, safeAreas } from "../motion/typography.js";
 import { RUBRIC } from "../motion/rubric.js";
+import { MEASURED_FACTS, requiredFillerBlackSec } from "../motion/measured-facts.js";
 
 const json = (uri: URL, data: unknown) => ({ contents: [{ uri: uri.href, mimeType: "application/json", text: JSON.stringify(data, null, 2) }] });
 
@@ -154,6 +155,17 @@ export function registerMotionResources(server: McpServer): void {
         safeAreas: { "1920x1080": safeAreas(1920, 1080), "1080x1920": safeAreas(1080, 1920), "1080x1080": safeAreas(1080, 1080), "3840x2160": safeAreas(3840, 2160) },
         tool: "ae_text action=legibility",
         attribution: "Numbers from legibility.info (rules for text in videos), Netflix Timed Text Style Guide, BBC Subtitle Guidelines; safe areas per SMPTE/EBU practice. Prose is ours.",
+      }),
+  );
+  server.registerResource(
+    "motion-hechos-medidos",
+    "motion://hechos-medidos",
+    { description: "Thresholds measured on delivered pieces, each with the project, date and method behind it, plus the rules derived from them (outro black vs crossfade, delivery loudness). Gates cite these instead of copying numbers.", mimeType: "application/json" },
+    async (uri) =>
+      json(uri, {
+        facts: MEASURED_FACTS,
+        derived: { requiredFillerBlackSec: { verticalMaster: requiredFillerBlackSec(), note: "crossfade minus the black the outro asset already carries" } },
+        contract: "A threshold enters here with its measurement. If a delivery proves one wrong, change it here and record the change in that project POSTMORTEM - never override it silently inside one project.",
       }),
   );
   server.registerResource(

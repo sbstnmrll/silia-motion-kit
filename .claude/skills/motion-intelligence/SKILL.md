@@ -5,7 +5,7 @@ description: Los números del motion en After Effects vía el MCP `ae` — regis
 
 # Motion intelligence — decidir los números y verificarlos
 
-Este skill dice **qué valores usar y cómo comprobarlos**. Cómo operar el MCP `ae` (recetas, gotchas, render) vive en `ae-motion`; el flujo storyboard → video vive en `video-desde-storyboard`. Los números son hechos con fuente (ver `references/sources.md` y `LICENSES.md`); la prosa y la síntesis son nuestras. La copia canónica de las tablas es el código del server (`src/motion/*.ts`) expuesto como recursos `motion://` — cuando dudes, léelos en vez de recordar.
+Este skill dice **qué valores usar y cómo comprobarlos**. Cómo operar el MCP `ae` (recetas, gotchas, render) vive en `ae-motion`; el flujo storyboard → video vive en `video-desde-storyboard`. Los números son hechos con fuente (ver `references/sources.md` y `LICENSES.md`); la prosa y la síntesis son nuestras. La copia canónica de las tablas es el código del server (`src/motion/*.ts` en el repo del MCP) expuesto como recursos `motion://` — cuando dudes, léelos en vez de recordar.
 
 ## 1. Orden de decisión (siempre en este orden)
 

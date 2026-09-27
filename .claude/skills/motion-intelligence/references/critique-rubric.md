@@ -1,6 +1,6 @@
 # Rúbrica de crítica — ítems binarios por grupo
 
-Canon: `src/motion/rubric.ts` (→ `motion://rubric/contact-sheet` cuando el server lo registre; al 2026-09-03 aún no está); ejecutada por `ae_frame action=critique`. Diseño tomado de WebVR (arXiv 2603.13391, CC BY 4.0: un atributo por ítem, sin conjunciones; lo que no se decide con números pasa a visión) y AniMINT (arXiv 2604.26148, CC BY 4.0: 7 intenciones, muestreo ≥ 10 fps, separar hechos de timing de juicios perceptuales). Los ítems atómicos binarios suben el acuerdo entre jueces de 59–67 % a 96 %.
+Canon: `src/motion/rubric.ts` (rutas relativas al repo del MCP) → `motion://rubric/contact-sheet`, registrado desde el commit `5efbee2`; ejecutada por `ae_frame action=critique`. Diseño tomado de WebVR (arXiv 2603.13391, CC BY 4.0: un atributo por ítem, sin conjunciones; lo que no se decide con números pasa a visión) y AniMINT (arXiv 2604.26148, CC BY 4.0: 7 intenciones, muestreo ≥ 10 fps, separar hechos de timing de juicios perceptuales). Los ítems atómicos binarios suben el acuerdo entre jueces de 59–67 % a 96 %.
 
 `auto` = se decide desde el `keyframe_dump`; `visión` = lo juzgas tú desde el contact sheet y el onion skin. Los `failed` traen `fix` numérico; los `unverifiable` traen la pregunta. 22 ítems: 14 auto, 8 visión.
 

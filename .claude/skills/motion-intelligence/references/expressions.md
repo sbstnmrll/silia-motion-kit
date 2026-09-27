@@ -1,6 +1,6 @@
 # Librería de expresiones — entradas y rangos
 
-Canon: `src/motion/expressions.ts`; `ae_expression action=library_info [library=<nombre>]` describe params, defaults, rangos y el texto rellenado sin tocar AE. Uso: `ae_expression action=set layer=<l> path=<p> library=<nombre> params={…}` (los params fuera de rango se aplican pero devuelven `warnings`). Todo es ES3 y corre en ambos motores de expresiones. Patrones de inertia/bounce/spring/typewriter/counter según LobzyJay/motion-design-with-claude (MIT) y Dan Ebberts; `ekeys_style` / `ebox_*` siguen los conceptos de eKeys/eBox (motiondeveloper, MIT). Texto reescrito.
+Canon: `src/motion/expressions.ts` (rutas relativas al repo del MCP); `ae_expression action=library_info [library=<nombre>]` describe params, defaults, rangos y el texto rellenado sin tocar AE. Uso: `ae_expression action=set layer=<l> path=<p> library=<nombre> params={…}` (los params fuera de rango se aplican pero devuelven `warnings`). Todo es ES3 y corre en ambos motores de expresiones. Patrones de inertia/bounce/spring/typewriter/counter según LobzyJay/motion-design-with-claude (MIT) y Dan Ebberts; `ekeys_style` / `ebox_*` siguen los conceptos de eKeys/eBox (motiondeveloper, MIT). Texto reescrito.
 
 | Nombre | Para | Params (default · rango) | Cuándo |
 |---|---|---|---|

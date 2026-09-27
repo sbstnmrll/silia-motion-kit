@@ -1,6 +1,6 @@
 # Licencias y atribución — skill `motion-intelligence`
 
-Este skill reproduce **valores numéricos** (duraciones, curvas, umbrales) de fuentes públicas y los organiza con prosa propia. Los números no son protegibles por derecho de autor; los nombres de tokens se citan como identificadores. Donde una fuente tiene licencia que exige atribución, se cumple aquí y en `THIRD_PARTY_NOTICES.md`.
+Este skill reproduce **valores numéricos** (duraciones, curvas, umbrales) de fuentes públicas y los organiza con prosa propia. Los números no son protegibles por derecho de autor; los nombres de tokens se citan como identificadores. Donde una fuente tiene licencia que exige atribución, se cumple aquí y en el `THIRD_PARTY_NOTICES.md` del repo del MCP.
 
 | Fuente | Licencia | Qué se usa | Atribución requerida |
 |---|---|---|---|
@@ -26,4 +26,4 @@ Este skill reproduce **valores numéricos** (duraciones, curvas, umbrales) de fu
 | Adobe After Effects Scripting Guide | © Adobe | modelo KeyframeEase (referencia de API) | referencia |
 | Silia editorial | house | `product_video`, house style SaaS, reglas de texto | opinión propia, `opinion:true` |
 
-Ninguna tabla de una fuente externa se copia literal: los valores se recombinan en tablas propias con columnas nuestras (influencias AE, rol, uso). Si una fuente cambia sus números, la verdad está en `src/motion/*.ts`, no aquí.
+Ninguna tabla de una fuente externa se copia literal: los valores se recombinan en tablas propias con columnas nuestras (influencias AE, rol, uso). Si una fuente cambia sus números, la verdad está en `src/motion/*.ts` del repo del MCP, no aquí.

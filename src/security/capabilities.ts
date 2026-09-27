@@ -54,7 +54,7 @@ const INSPECT_TOOL_NAMES = new Set([
   "ae_dialogs",
 ]);
 
-const FILESYSTEM_TOOL_NAMES = new Set(["ae_checkpoint", "ae_tool_library", "ae_versions", "ae_lottie", "ae_handoff"]);
+const FILESYSTEM_TOOL_NAMES = new Set(["ae_checkpoint", "ae_tool_library", "ae_versions", "ae_lottie", "ae_handoff", "silia_board_review"]);
 
 const EXPORT_TOOL_NAMES = new Set(["ae_render", "ae_render_queue", "ae_frame", "ae_mogrt", "silia_outro"]);
 

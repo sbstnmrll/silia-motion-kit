@@ -16,6 +16,7 @@ import { getAudioTools } from "./audio.js";
 import { getSiliaTools } from "./silia.js";
 import { getSilia2Tools } from "./silia2.js";
 import { getVersionTools } from "./versions.js";
+import { getBoardTools } from "./board.js";
 
 /** Tool modules in registration order. Core (undo/batch), health and scripting are added by server.ts. */
 export const TOOL_MODULES: ToolModule[] = [
@@ -37,4 +38,5 @@ export const TOOL_MODULES: ToolModule[] = [
   getSiliaTools,
   getSilia2Tools,
   getVersionTools,
+  getBoardTools,
 ];

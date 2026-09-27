@@ -1,6 +1,6 @@
 # Easings — tabla cruzada
 
-Canon: `src/motion/eases.ts` → `motion://tokens/easings` → `ae_ease action=list`. Todos los nombres de esta tabla valen en `ae_ease action=preset preset=<nombre>`, en `ease:` de `ae_keyframes action=set` y en `ease=` de `ae_layer_transform action=keyframe` y de las tools `silia_*`.
+Canon: `src/motion/eases.ts` (rutas relativas al repo del MCP) → `motion://tokens/easings` → `ae_ease action=list`. Todos los nombres de esta tabla valen en `ae_ease action=preset preset=<nombre>`, en `ease:` de `ae_keyframes action=set` y en `ease=` de `ae_layer_transform action=keyframe` y de las tools `silia_*`.
 
 **Influencias AE a velocidad 0**: `out = 100·x1`, `in = 100·(1−x2)`, recortadas a 0.1–100. Con la velocidad media del tramo v̄ (|Δvalor|/Δt): `speed_out = (y1/x1)·v̄`, `speed_in = ((1−y2)/(1−x2))·v̄`. `ae_ease action=preset` calcula ambos (influencia **y** velocidad) a partir de los keys vecinos; la tabla muestra solo influencias. Rol: enter = decelera, exit = acelera, within = simétrico, loop = lineal.
 

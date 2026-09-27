@@ -1,6 +1,6 @@
 # Duraciones y staggers
 
-Canon: `src/motion/durations.ts`, `staggers.ts`, `taxonomy.ts` → `motion://tokens/durations`, `motion://tokens/staggers`, `motion://tokens/distance-duration`, `motion://taxonomy/registers`.
+Canon: `src/motion/durations.ts`, `staggers.ts`, `taxonomy.ts` (rutas relativas al repo del MCP) → `motion://tokens/durations`, `motion://tokens/staggers`, `motion://tokens/distance-duration`, `motion://taxonomy/registers`.
 
 ## Bandas por registro (ms)
 

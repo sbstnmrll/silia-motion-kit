@@ -1,6 +1,6 @@
 # Tipografía en movimiento — legibilidad
 
-Canon: `src/motion/typography.ts` (→ `motion://typography/legibility` cuando el server lo registre; al 2026-09-03 aún no está); herramientas `ae_text action=legibility` y `silia_captions action=build` (`warnings` + `legibility.items`). Números tomados de guías públicas (Netflix TTSG, BBC, legibility.info, SMPTE/EBU); la lógica de chequeo es nuestra.
+Canon: `src/motion/typography.ts` (rutas relativas al repo del MCP) → `motion://typography/legibility`, registrado desde el commit `5efbee2`; herramientas `ae_text action=legibility` y `silia_captions action=build` (`warnings` + `legibility.items`). Números tomados de guías públicas (Netflix TTSG, BBC, legibility.info, SMPTE/EBU); la lógica de chequeo es nuestra.
 
 ## Reglas
 

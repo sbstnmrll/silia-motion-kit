@@ -1,6 +1,6 @@
 # Fuentes
 
-Los números son hechos y llevan su origen; la prosa, las glosas y la síntesis son nuestras. Licencias y qué se tomó de cada una: `../LICENSES.md`. La copia canónica con atribución por valor está en `src/motion/*.ts` y en los recursos `motion://`.
+Los números son hechos y llevan su origen; la prosa, las glosas y la síntesis son nuestras. Licencias y qué se tomó de cada una: `../LICENSES.md`. La copia canónica con atribución por valor está en `src/motion/*.ts` del repo del MCP y en los recursos `motion://`.
 
 ## Sistemas de diseño (registro functional_ui)
 
