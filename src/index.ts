@@ -8,10 +8,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
 import { loadConfig, debugLog, setDebug } from "./config.js";
 import { cleanupBridgeRoot } from "./bridge/index.js";
-import { findAeInstalls, locatePollerScript } from "./bridge/poller-transport.js";
+import { findAeInstalls, locatePollerScript, runScriptInRunningAe } from "./bridge/poller-transport.js";
+import { aePrefsRoot, cepBundleDir, helperScript, isMac, isWindows } from "./host/platform.js";
 import { createServer, SERVER_VERSION } from "./server.js";
 import { collectLocalDoctor, renderDoctorHuman } from "./diagnostics/doctor.js";
 
@@ -32,23 +33,29 @@ function runPowerShell(script: string, extra: string[] = []): void {
   execFileSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, ...extra], { stdio: "inherit", cwd: projectRoot });
 }
 
+/** Run scripts/<name>.ps1 on Windows or scripts/<name>.sh on macOS. */
+function runHelper(name: Parameters<typeof helperScript>[0], extra: string[] = []): void {
+  const h = helperScript(name);
+  execFileSync(h.runner, [...h.runnerArgs, join(projectRoot, "scripts", h.file), ...extra], { stdio: "inherit", cwd: projectRoot });
+}
+
 if (has("--help") || has("-h")) {
   console.log(`ae-mcp ${SERVER_VERSION} — MCP server for Adobe After Effects (Silia)
 
 Usage:
   ae-mcp                          Start the MCP server (stdio)
-  ae-mcp --install-cep            Install the CEP bridge into %APPDATA%\\Adobe\\CEP\\extensions\\AeMcpCEP (+ PlayerDebugMode)
-  ae-mcp --diagnose-cep           Check the CEP install, registry keys and After Effects CEP logs
-  ae-mcp --uninstall-cep          Remove the CEP bridge folder (registry untouched)
-  ae-mcp --sign-cep               Build artifacts/AeMcpCEP.zxp with ZXPSignCmd (self-signed)
+  ae-mcp --install-cep            Install the CEP bridge into ${cepBundleDir()} (+ PlayerDebugMode)
+  ae-mcp --diagnose-cep           Check the CEP install, PlayerDebugMode and After Effects CEP logs
+  ae-mcp --uninstall-cep          Remove the CEP bridge folder (PlayerDebugMode untouched)
+  ae-mcp --sign-cep               Build artifacts/AeMcpCEP.zxp with ZXPSignCmd (self-signed; Windows only)
   ae-mcp --install-poller [--ae 2026] [--startup]   Install the headless poller into the running AE (fallback transport)
   ae-mcp --enable-scripting-pref --ae 26.3          Turn on "Allow Scripts to Write Files and Access Network" (AE must be closed)
-  ae-mcp --doctor [--json]        Local checks: installs, registry, bridge dirs, listeners
+  ae-mcp --doctor [--json]        Local checks: installs, PlayerDebugMode, bridge dirs, listeners
   ae-mcp --print-mcp-config       Print claude mcp add / Claude Desktop snippets
   ae-mcp --version
 
 Environment:
-  AE_MCP_TEMP_DIR      Bridge root (default: %TEMP%\\ae-mcp-bridge; per-version v<major> subdirs)
+  AE_MCP_TEMP_DIR      Bridge root (default: <os tmpdir>/ae-mcp-bridge; per-version v<major> subdirs)
   AE_MCP_TARGET        2026 | 26 | auto (default auto = freshest live listener)
   AE_MCP_TRANSPORT     cep | poller | auto (default auto)
   AE_MCP_TIMEOUT_MS    Default command timeout (30000)
@@ -75,7 +82,8 @@ if (has("--print-mcp-config")) {
   const dist = join(projectRoot, "dist", "index.js");
   const node = process.execPath;
   console.log(`# Claude Code (user scope)\nclaude mcp add ae -s user -e AE_MCP_TARGET=auto -- "${node}" "${dist}"\n`);
-  console.log(`# Claude Desktop (%APPDATA%\\Claude\\claude_desktop_config.json)\n${JSON.stringify({ mcpServers: { ae: { command: node, args: [dist], env: { AE_MCP_TARGET: "auto" } } } }, null, 2)}`);
+  const desktopConfig = isMac ? "~/Library/Application Support/Claude/claude_desktop_config.json" : "%APPDATA%\\Claude\\claude_desktop_config.json";
+  console.log(`# Claude Desktop (${desktopConfig})\n${JSON.stringify({ mcpServers: { ae: { command: node, args: [dist], env: { AE_MCP_TARGET: "auto" } } } }, null, 2)}`);
   process.exit(0);
 }
 
@@ -85,15 +93,20 @@ if (cepActions.length > 1) {
   process.exit(1);
 }
 if (cepActions.length === 1) {
-  if (process.platform !== "win32") {
-    console.error("CEP install scripts are Windows-only in this version.");
+  const action = cepActions[0];
+  if (!isWindows && !isMac) {
+    console.error("CEP install scripts support Windows and macOS only.");
     process.exit(1);
   }
-  const action = cepActions[0];
+  if (action === "--sign-cep" && !isWindows) {
+    console.error("--sign-cep needs ZXPSignCmd.exe and is Windows-only. The signed artifacts/AeMcpCEP.zxp is cross-platform: build it on Windows and --install-cep here.");
+    process.exit(1);
+  }
+  const unsigned = has("--unsigned") ? [isWindows ? "-Unsigned" : "--unsigned"] : [];
   try {
-    if (action === "--install-cep") runPowerShell(join(projectRoot, "scripts", "install-cep.ps1"), has("--unsigned") ? ["-Unsigned"] : []);
-    else if (action === "--diagnose-cep") runPowerShell(join(projectRoot, "scripts", "install-cep.ps1"), ["-Diagnose"]);
-    else if (action === "--uninstall-cep") runPowerShell(join(projectRoot, "scripts", "uninstall-cep.ps1"));
+    if (action === "--install-cep") runHelper("install-cep", unsigned);
+    else if (action === "--diagnose-cep") runHelper("install-cep", [isWindows ? "-Diagnose" : "--diagnose"]);
+    else if (action === "--uninstall-cep") runHelper("uninstall-cep");
     else runPowerShell(join(projectRoot, "scripts", "build-signed-cep.ps1"));
   } catch {
     console.error(`${action} failed; see output above.`);
@@ -109,7 +122,7 @@ if (has("--enable-scripting-pref")) {
     process.exit(1);
   }
   try {
-    runPowerShell(join(projectRoot, "scripts", "enable-scripting-pref.ps1"), ["-Version", ver]);
+    runHelper("enable-scripting-pref", isWindows ? ["-Version", ver] : [ver]);
   } catch {
     process.exit(1);
   }
@@ -126,16 +139,14 @@ if (has("--install-poller")) {
   }
   const script = locatePollerScript();
   const cfg = loadConfig();
-  if (cfg.bridgeRoot !== join(process.env.TEMP ?? "", "ae-mcp-bridge")) {
+  if (cfg.bridgeRoot !== join(tmpdir(), "ae-mcp-bridge")) {
     // Pointer file so the poller finds a customised root.
-    writeFileSync(join(process.env.TEMP ?? "", "ae-mcp-root.txt"), cfg.bridgeRoot, "utf-8");
+    writeFileSync(join(tmpdir(), "ae-mcp-root.txt"), cfg.bridgeRoot, "utf-8");
   }
-  const exe = existsSync(install.afterfxCom) ? install.afterfxCom : install.afterfxExe;
-  console.log(`Installing poller into running After Effects ${install.year}: ${exe} -r ${script}`);
-  const child = spawn(exe, ["-r", script], { detached: true, stdio: "ignore", windowsHide: true });
-  child.unref();
+  console.log(`Installing poller into running After Effects ${install.year}: ${script}`);
+  runScriptInRunningAe(install, script);
   if (has("--startup")) {
-    const prefsRoot = join(process.env.APPDATA ?? "", "Adobe", "After Effects");
+    const prefsRoot = aePrefsRoot();
     const verDirs = existsSync(prefsRoot) ? readdirSync(prefsRoot).filter((d: string) => d.startsWith(String(install.major))) : [];
     for (const v of verDirs) {
       const startup = join(prefsRoot, v, "Scripts", "Startup");

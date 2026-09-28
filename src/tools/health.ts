@@ -7,6 +7,7 @@ import { findAeInstalls } from "../bridge/poller-transport.js";
 import { CAPABILITIES } from "../security/index.js";
 import { runScript, ok, err, safe, type ToolContext, type ToolRecord } from "./types.js";
 import { aeDialogs } from "../host/dialogs.js";
+import { cepBundleDir } from "../host/platform.js";
 
 function which(cmd: string): string | null {
   try {
@@ -28,7 +29,7 @@ export function getHealthTools(ctx: ToolContext): ToolRecord {
         hwnd: z.number().int().optional().describe("Target one dialog (from list). Default: all."),
       },
       handler: safe(async (a: { action?: "list" | "ok" | "cancel" | "close"; hwnd?: number }) => {
-        if (process.platform !== "win32") return err("ae_dialogs is Windows-only", "UNSUPPORTED");
+        if (process.platform !== "win32") return err("ae_dialogs is Windows-only: macOS has no clean API to enumerate AE's modal dialogs. If calls return ENGINE_BUSY, ask the user to look at After Effects and dismiss the open dialog.", "UNSUPPORTED");
         const r = await aeDialogs(a.action ?? "list", a.hwnd);
         if (!r.pid) return ok({ afterEffectsRunning: false, dialogs: [] });
         return ok({ afterEffectsRunning: true, pid: r.pid, count: r.dialogs.length, remaining: r.remaining, dialogs: r.dialogs });
@@ -89,7 +90,7 @@ export function getHealthTools(ctx: ToolContext): ToolRecord {
         const data = r.data as Record<string, unknown>;
         if (deep) {
           const installs = findAeInstalls();
-          const cepDir = join(process.env.APPDATA ?? "", "Adobe", "CEP", "extensions", "AeMcpCEP");
+          const cepDir = cepBundleDir();
           (data.deep as Record<string, unknown>).host = {
             aeInstalls: installs.map((i) => ({ year: i.year, aerender: existsSync(i.aerender) })),
             ffmpeg: which("ffmpeg"),

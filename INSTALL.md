@@ -10,7 +10,7 @@ Tiempo real de instalación: **10–15 minutos**, casi todo esperando a `npm` y 
 
 | Requisito | Cómo comprobarlo | Si falta |
 |---|---|---|
-| Windows 10 u 11 | — | El puente CEP es Windows-only por ahora |
+| Windows 10/11 o macOS | — | En macOS todo funciona salvo `ae_dialogs`; ver `docs/PORT-MACOS.md` |
 | After Effects 2025 o 2026 | Que abra | — |
 | Node.js 20.19 o superior | `node -v` en PowerShell | Instala el **LTS** de [nodejs.org](https://nodejs.org) |
 | Git *(sólo si clonas el repo; con el `.zip` no hace falta)* | `git --version` | [git-scm.com](https://git-scm.com) |

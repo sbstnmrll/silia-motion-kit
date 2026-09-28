@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import type { AeMcpConfig } from "../config.js";
 import { findAeInstalls } from "../bridge/poller-transport.js";
 import { listVersionDirs, readPresences } from "../bridge/bridge-dir.js";
+import { cepBundleDir, cepLogDirs, isMac } from "../host/platform.js";
 
 export interface DoctorReport {
   version: string;
@@ -27,6 +28,18 @@ function regString(key: string, name: string): string | null {
   }
 }
 
+/** macOS: `defaults read com.adobe.CSXS.<v> PlayerDebugMode`, typed like regString ("string:1"). */
+function defaultsString(domain: string, name: string): string | null {
+  try {
+    const type = execFileSync("defaults", ["read-type", domain, name], { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] });
+    const value = execFileSync("defaults", ["read", domain, name], { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] });
+    const t = /Type is (\w+)/.exec(type)?.[1] ?? "unknown";
+    return `${t}:${value.trim()}`;
+  } catch {
+    return null;
+  }
+}
+
 function which(cmd: string): boolean {
   try {
     execFileSync(process.platform === "win32" ? "where" : "which", [cmd], { stdio: "ignore" });
@@ -39,29 +52,35 @@ function which(cmd: string): boolean {
 export function collectLocalDoctor(config: AeMcpConfig, version = "unknown"): DoctorReport {
   const problems: string[] = [];
   const installs = findAeInstalls().map((i) => ({ year: i.year, root: i.root, aerender: existsSync(i.aerender) }));
-  if (installs.length === 0) problems.push("No After Effects installation found under C:\\Program Files\\Adobe.");
+  if (installs.length === 0) problems.push(`No After Effects installation found under ${isMac ? "/Applications" : "C:\\Program Files\\Adobe"}.`);
 
-  const bundlePath = join(process.env.APPDATA ?? "", "Adobe", "CEP", "extensions", "AeMcpCEP");
+  const bundlePath = cepBundleDir();
   const bundleInstalled = existsSync(join(bundlePath, "CSXS", "manifest.xml"));
   if (!bundleInstalled) problems.push("CEP bundle not installed. Run: ae-mcp --install-cep");
 
   const playerDebugMode: Record<string, string | null> = {};
   for (const v of [11, 12, 13, 14]) {
-    const val = regString(`HKCU\\Software\\Adobe\\CSXS.${v}`, "PlayerDebugMode");
-    playerDebugMode[`CSXS.${v}`] = val;
-    if (v === 12 && val !== "REG_SZ:1") problems.push("HKCU\\Software\\Adobe\\CSXS.12 PlayerDebugMode must be REG_SZ \"1\" for the CEP bridge to load.");
+    if (isMac) {
+      const val = defaultsString(`com.adobe.CSXS.${v}`, "PlayerDebugMode");
+      playerDebugMode[`CSXS.${v}`] = val;
+      if (v === 12 && val !== "string:1") problems.push("com.adobe.CSXS.12 PlayerDebugMode must be the string \"1\" (defaults write com.adobe.CSXS.12 PlayerDebugMode -string 1).");
+    } else {
+      const val = regString(`HKCU\\Software\\Adobe\\CSXS.${v}`, "PlayerDebugMode");
+      playerDebugMode[`CSXS.${v}`] = val;
+      if (v === 12 && val !== "REG_SZ:1") problems.push("HKCU\\Software\\Adobe\\CSXS.12 PlayerDebugMode must be REG_SZ \"1\" for the CEP bridge to load.");
+    }
   }
 
   let lastLog: string | null = null;
   const signatureFailures: string[] = [];
-  const temp = process.env.TEMP ?? "";
   try {
-    const logs = readdirSync(temp)
-      .filter((f) => /^CEP\d+-AEFT\.log$/.test(f))
-      .map((f) => ({ f, m: statSync(join(temp, f)).mtimeMs }))
+    const logs = cepLogDirs()
+      .filter((d) => existsSync(d))
+      .flatMap((d) => readdirSync(d).filter((f) => /^CEP\d+-AEFT\.log$/.test(f)).map((f) => join(d, f)))
+      .map((f) => ({ f, m: statSync(f).mtimeMs }))
       .sort((a, b) => b.m - a.m);
     if (logs.length) {
-      lastLog = join(temp, logs[0].f);
+      lastLog = logs[0].f;
       const text = readFileSync(lastLog, "utf-8");
       for (const line of text.split(/\r?\n/)) if (/Signature verification failed.*com\.silia\.ae\.mcp/.test(line)) signatureFailures.push(line);
     }

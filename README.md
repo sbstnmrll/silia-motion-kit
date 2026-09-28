@@ -1,12 +1,13 @@
 # ae-mcp — After Effects MCP server (Silia)
 
-An MCP server that lets Claude (Claude Code, Claude Desktop, or any MCP client) drive Adobe After Effects on Windows: build comps and layers, animate with proper easing, apply effects by matchName, validate expressions, **see rendered frames**, render in the background with `aerender` and verify the output with ffprobe, export MOGRTs and hand them to the Premiere Pro MCP, and build on-brand Silia elements (lower thirds, titles, word-synced captions, 2.5D pushes, the outro).
+An MCP server that lets Claude (Claude Code, Claude Desktop, or any MCP client) drive Adobe After Effects on Windows or macOS: build comps and layers, animate with proper easing, apply effects by matchName, validate expressions, **see rendered frames**, render in the background with `aerender` and verify the output with ffprobe, export MOGRTs and hand them to the Premiere Pro MCP, and build on-brand Silia elements (lower thirds, titles, word-synced captions, 2.5D pushes, the outro).
 
 Built for Silia / Creai as an internal tool; MIT licensed; adapted in part from [`premiere-pro-mcp`](https://github.com/leancoderkavy/premiere-pro-mcp) and the open-source After Effects MCP ecosystem (see `THIRD_PARTY_NOTICES.md`).
 
 ## Requirements
 
-- Windows 10/11, After Effects 2025 or 2026 (verified on 26.3), Node 20.19+
+- Windows 10/11 or macOS, After Effects 2025 or 2026 (verified on 26.3 Windows and 26.5 macOS arm64), Node 20.19+
+- macOS differences: `ae_dialogs` is Windows-only, and `--sign-cep` needs `ZXPSignCmd.exe` (the signed `.zxp` built on Windows installs fine on the Mac). See [`docs/PORT-MACOS.md`](docs/PORT-MACOS.md)
 - `ffmpeg` / `ffprobe` on PATH for render verification and audio analysis (WinGet build works)
 - The CEP bridge **must be signed**: since 2026-09-08 After Effects 2026 rejects the unsigned bundle even with `PlayerDebugMode` set (`Signature verification failed` in `%TEMP%\CEP12-AEFT.log`). This repo ships a ready-made self-signed `artifacts/AeMcpCEP.zxp`, which is what `--install-cep` installs — no signing step on your side unless you change `cep-plugin/`
 
@@ -28,6 +29,8 @@ npm run build
 node dist/index.js --install-cep      # installs the signed artifacts/AeMcpCEP.zxp into %APPDATA%\Adobe\CEP\extensions\AeMcpCEP, sets PlayerDebugMode
 node dist/index.js --doctor           # checks installs, registry, bridge dirs, ffmpeg
 ```
+
+On macOS the same commands work: `--install-cep` runs `scripts/install-cep.sh`, which unzips the signed `.zxp` into `~/Library/Application Support/Adobe/CEP/extensions/AeMcpCEP` and sets `defaults write com.adobe.CSXS.<v> PlayerDebugMode -string 1`.
 
 Restart After Effects fully. The bridge auto-starts (an invisible "headless" extension); `Window > Extensions > Silia AE MCP` shows a status panel. Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
 

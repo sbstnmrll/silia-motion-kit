@@ -1,5 +1,13 @@
 # Portar ae-mcp a macOS
 
+> **Estado (2026-09-27): portado y verificado** en una MacBook Pro arm64 con After Effects 26.5, Node 24.21.
+> Pasaron, en orden: build, 100 unit tests, `--install-cep` (el `.zxp` firmado en Windows cargó en Mac sin re-firmar), `--doctor`, `ae_status` (`connected: true`, transporte `cep`), `ae_comp create` + `ae_layer_create text` + `ae_frame capture` (PNG revisado a ojo: el texto se ve), y `ae_render` de 1 s con aerender (MP4 1920×1080, 30 fps, 1.0 s, revisado con AVFoundation porque la Mac aún no tenía ffprobe).
+>
+> Qué cambió: `src/host/platform.ts` (rutas por SO), `findMacInstalls()` y `runScriptInRunningAe()` (AppleScript `DoScriptFile` en vez de `AfterFX.com -r`) en `src/bridge/poller-transport.ts`, el despacho de scripts en `src/index.ts`, `defaults` en vez de registro en `doctor.ts`, y `scripts/install-cep.sh`, `uninstall-cep.sh`, `enable-scripting-pref.sh`.
+> Sin verificar en vivo: el transporte `poller` en Mac (el CEP funcionó, así que no hizo falta) y `enable-scripting-pref.sh` (AE aún no había escrito su archivo de prefs).
+>
+> Lo de abajo es el análisis original, se conserva como referencia.
+
 Documento de traspaso. Escrito el 2026-09-27 desde la máquina Windows, midiendo el código real, para que Claude en la Mac no arranque de cero ni repita el análisis.
 
 ## Lo primero: no construyas de nuevo

@@ -1,12 +1,13 @@
 /**
  * Headless fallback: same file protocol, but the executor is an ExtendScript
  * poller installed into the running After Effects via `AfterFX.com -r ensure-poller.jsx`
- * (the -r flag executes inside the already-running instance). Requires the AE
+ * on Windows or AppleScript `DoScriptFile` on macOS (both execute inside the
+ * already-running instance). Requires the AE
  * preference "Allow Scripts to Write Files and Access Network" because the poller
  * writes res_ files from ExtendScript.
  */
 import { existsSync, readdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import type { AeMcpConfig } from "../config.js";
@@ -21,13 +22,20 @@ export interface AeInstall {
   year: number;
   major: number;
   root: string;
+  /** Windows: AfterFX.exe. macOS: the "Adobe After Effects 20xx.app" bundle. */
   afterfxExe: string;
-  afterfxCom: string;
+  /** Windows console shim (AfterFX.com). Does not exist on macOS. */
+  afterfxCom?: string;
   aerender: string;
 }
 
-/** Enumerate C:\Program Files\Adobe\Adobe After Effects 20xx (newest first). */
+/**
+ * Enumerate After Effects installs, newest first.
+ * Windows: C:\Program Files\Adobe\Adobe After Effects 20xx\Support Files.
+ * macOS:   /Applications/Adobe After Effects 20xx (aerender sits next to the .app).
+ */
 export function findAeInstalls(): AeInstall[] {
+  if (process.platform === "darwin") return findMacInstalls("/Applications");
   if (process.platform !== "win32") return [];
   const base = "C:\\Program Files\\Adobe";
   if (!existsSync(base)) return [];
@@ -49,6 +57,39 @@ export function findAeInstalls(): AeInstall[] {
     });
   }
   return out.sort((a, b) => b.year - a.year);
+}
+
+export function findMacInstalls(base: string): AeInstall[] {
+  if (!existsSync(base)) return [];
+  const out: AeInstall[] = [];
+  for (const name of readdirSync(base)) {
+    const m = /^Adobe After Effects (\d{4})$/.exec(name);
+    if (!m) continue;
+    const year = parseInt(m[1], 10);
+    const root = join(base, name);
+    const afterfxExe = join(root, `${name}.app`);
+    if (!existsSync(afterfxExe)) continue;
+    out.push({ year, major: year - 2000, root, afterfxExe, aerender: join(root, "aerender") });
+  }
+  return out.sort((a, b) => b.year - a.year);
+}
+
+/**
+ * Run an ExtendScript file inside the already-running After Effects.
+ * Windows: `AfterFX.com -r <file>`. macOS: AppleScript `DoScriptFile`, which is the
+ * documented equivalent (there is no -r flag on the Mac binary).
+ */
+export function runScriptInRunningAe(install: AeInstall, script: string, env: NodeJS.ProcessEnv = process.env): void {
+  let child;
+  if (process.platform === "darwin") {
+    const app = basename(install.afterfxExe, ".app");
+    const posix = script.replace(/\\/g, "/").replace(/"/g, '\\"');
+    child = spawn("osascript", ["-e", `tell application "${app}" to DoScriptFile "${posix}"`], { detached: true, stdio: "ignore", env });
+  } else {
+    const exe = install.afterfxCom && existsSync(install.afterfxCom) ? install.afterfxCom : install.afterfxExe;
+    child = spawn(exe, ["-r", script], { detached: true, stdio: "ignore", windowsHide: true, env });
+  }
+  child.unref();
 }
 
 export function locatePollerScript(): string {
@@ -73,7 +114,7 @@ export class PollerTransport extends FileTransport {
 
   /**
    * If no poller presence is fresh in the target dir, ask the running AE to
-   * install one. AfterFX.com returns quickly; the poller then heartbeats within
+   * install one. The launcher returns quickly; the poller then heartbeats within
    * ~1 s. We wait up to 8 s for the presence file.
    */
   override async ensureReady(): Promise<void> {
@@ -88,18 +129,11 @@ export class PollerTransport extends FileTransport {
     }
     const dir = versionDir(this.config.bridgeRoot, install.major);
     ensureDir(dir);
-    const exe = existsSync(install.afterfxCom) ? install.afterfxCom : install.afterfxExe;
     const script = locatePollerScript();
     this.lastSpawnAt = Date.now();
-    debugLog(`poller: spawning ${exe} -r ${script}`);
+    debugLog(`poller: running ${script} inside After Effects ${install.year}`);
     try {
-      const child = spawn(exe, ["-r", script], {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
-        env: { ...process.env, AE_MCP_BRIDGE_DIR: dir },
-      });
-      child.unref();
+      runScriptInRunningAe(install, script, { ...process.env, AE_MCP_BRIDGE_DIR: dir });
     } catch (e) {
       debugLog(`poller spawn failed: ${e instanceof Error ? e.message : String(e)}`);
       return;

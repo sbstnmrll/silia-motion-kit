@@ -1,6 +1,6 @@
 # Silia AE MCP — instrucciones para Claude
 
-Este repositorio **es** un servidor MCP que maneja Adobe After Effects en Windows (crear comps y capas, animar con easing correcto, aplicar efectos, ver frames renderizados, renderizar con `aerender`, exportar MOGRT y pasárselo a Premiere, más las recetas de marca Silia). No es una librería que se importa: se instala, se registra en Claude y se usa como MCP con 44 tools (`ae_*`, `silia_*`).
+Este repositorio **es** un servidor MCP que maneja Adobe After Effects en Windows y macOS (crear comps y capas, animar con easing correcto, aplicar efectos, ver frames renderizados, renderizar con `aerender`, exportar MOGRT y pasárselo a Premiere, más las recetas de marca Silia). No es una librería que se importa: se instala, se registra en Claude y se usa como MCP con 44 tools (`ae_*`, `silia_*`).
 
 Si el usuario abrió Claude aquí, casi siempre quiere una de dos cosas: **instalarlo** o **usarlo**.
 
@@ -22,6 +22,8 @@ Sigue estos pasos en orden y **verifica cada uno antes de pasar al siguiente**. 
 | 6 | Registrar el MCP | ver abajo | `claude mcp list` muestra `ae` |
 | 7 | Abrir After Effects | — | En `Window > Extensions` aparece **Silia AE MCP** |
 | 8 | Prueba real | tool `ae_status` | Devuelve `connected: true` y la versión de AE |
+
+**En macOS** la tabla es la misma: `--install-cep` corre `scripts/install-cep.sh` y deja el puente en `~/Library/Application Support/Adobe/CEP/extensions/AeMcpCEP`; el MCP se registra con la salida de `command -v node` en vez de `node.exe`. `ae_dialogs` no existe en Mac y `--sign-cep` sólo corre en Windows. Detalle en `docs/PORT-MACOS.md`.
 
 Los pasos 1–5 los hace de una pasada `powershell -ExecutionPolicy Bypass -File scripts\setup.ps1` (comprueba Node y ffmpeg, instala, construye, instala el puente, corre el doctor e imprime el comando de registro). Úsalo si prefieres una sola orden; si algo falla, vuelve a la tabla paso a paso.
 

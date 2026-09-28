@@ -177,7 +177,7 @@ export function pickInstall(aeYear?: number): AeInstall {
   const installs = findAeInstalls();
   const pick = aeYear ? installs.find((i) => i.year === aeYear) : installs[0];
   if (!pick) throw new Error(`No After Effects install${aeYear ? ` for ${aeYear}` : ""} found (have: ${installs.map((i) => i.year).join(", ") || "none"})`);
-  if (!existsSync(pick.aerender)) throw new Error(`aerender.exe missing at ${pick.aerender}`);
+  if (!existsSync(pick.aerender)) throw new Error(`aerender missing at ${pick.aerender}`);
   return pick;
 }
 
@@ -353,7 +353,8 @@ export function cancelJob(dataDir: string, id: string): RenderJob | undefined {
   } else if (job.state === "running" && job.pid) {
     job.state = "cancelled";
     try {
-      spawn("taskkill", ["/PID", String(job.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+      if (process.platform === "win32") spawn("taskkill", ["/PID", String(job.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+      else process.kill(job.pid, "SIGTERM");
     } catch {
       // ignore
     }
