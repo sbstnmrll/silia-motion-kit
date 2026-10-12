@@ -106,7 +106,18 @@ Eso ejercita el camino completo: `silia_comp` → `silia_lower_third` → `ae_fr
 - Claude debe *mirar* lo que hace (`ae_frame`), no fiarse del "listo".
 - Un `ENGINE_BUSY` no es una caída: es un diálogo modal abierto en After Effects.
 
-Lo que Claude necesita saber para trabajar bien ya viene en el repo (`.claude/skills/ae-motion/` y `.claude/skills/motion-intelligence/`): se cargan solos cuando trabajas con Claude Code dentro de esta carpeta. Si trabajas desde otra carpeta, copia esos dos skills a `~/.claude/skills/` para tenerlos siempre.
+Lo que Claude necesita saber para trabajar bien ya viene en el repo, en `.claude/skills/`:
+- `silia-motion-marca`: el canon de marca de Silia, cómo se ve y se mueve cada componente.
+- `ae-motion`: cómo operar el MCP.
+- `motion-intelligence`: los números.
+- `video-desde-storyboard`: el flujo de Figma a video.
+- `revisor-storyboard` y `auditor-entrega`: el QA.
+
+Se cargan solas cuando trabajas con Claude Code dentro de esta carpeta. Si trabajas desde otra carpeta, cópialas a `~/.claude/skills/` para tenerlas siempre:
+
+```bash
+cp -R .claude/skills/* ~/.claude/skills/
+```
 
 - Referencia completa de parámetros: [`docs/supported-actions.md`](docs/supported-actions.md)
 - Qué hace cada tool y cómo está construido: [`README.md`](README.md) y [`docs/PLAN-BUILD.md`](docs/PLAN-BUILD.md)

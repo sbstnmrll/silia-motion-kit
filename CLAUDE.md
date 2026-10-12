@@ -1,12 +1,24 @@
-# Silia AE MCP — instrucciones para Claude
+# Silia Motion Kit — instrucciones para Claude
 
-Este repositorio **es** un servidor MCP que maneja Adobe After Effects en Windows y macOS (crear comps y capas, animar con easing correcto, aplicar efectos, ver frames renderizados, renderizar con `aerender`, exportar MOGRT y pasárselo a Premiere, más las recetas de marca Silia). No es una librería que se importa: se instala, se registra en Claude y se usa como MCP con 44 tools (`ae_*`, `silia_*`).
+Este repositorio es el **kit de motion de Silia**: todo lo que hace falta para que Claude anime videos y storyboards de Silia con los mismos resultados en cualquier máquina. Trae tres cosas:
 
-Si el usuario abrió Claude aquí, casi siempre quiere una de dos cosas: **instalarlo** o **usarlo**.
+1. **El MCP de After Effects** (este repo **es** ese servidor). Maneja AE en Windows y macOS: comps, capas, easing correcto, efectos, frames renderizados, `aerender`, MOGRT hacia Premiere y las recetas de marca Silia. Son 44 tools (`ae_*`, `silia_*`).
+2. **La guía del MCP de Premiere Pro** (`docs/PREMIERE.md`). Es un paquete de npm aparte (`premiere-pro-mcp`); la guía cubre cómo instalarlo y sus fallos conocidos.
+3. **Las skills** (`.claude/skills/`). La principal es **`silia-motion-marca`**, el canon de marca: highlight lima, palabra por palabra, orbe vivo, vidrio, fondos, outro y audio, con números exactos. Las demás dicen cómo operar AE, los números del motion y el flujo storyboard → video.
+
+Si el usuario abrió Claude aquí, casi siempre quiere una de dos cosas: **instalar el kit** o **usarlo**.
+
+**Orden de instalación completo** (verifica cada parte antes de pasar a la siguiente):
+1. After Effects: sección A de abajo.
+2. Premiere Pro: `docs/PREMIERE.md`.
+3. Skills globales, para que funcionen desde cualquier carpeta: `cp -R .claude/skills/* ~/.claude/skills/` (Windows: copia `.claude\skills\*` a `%USERPROFILE%\.claude\skills\`). Comprueba que existe `~/.claude/skills/silia-motion-marca/SKILL.md`.
+4. HyperFrames, necesario para renderizar el orbe: `npm i -g hyperframes`, luego `hyperframes browser ensure` y `hyperframes doctor`. Prueba el orbe con `node .claude/skills/silia-motion-marca/orbe/render-orbe-seq.cjs --suite azul --size 256 --seconds 0.2 --out /tmp/orbe-prueba`: debe dejar PNG con alfa.
+5. Fuentes: **ES Klarheit Grotesk** Book y Medium instaladas en el sistema. Son una licencia de la marca y no vienen en el repo: pídeselas al equipo. Verifícalo en AE con `ae_text action=fonts regex=Klarheit`.
+6. Reinicia Claude y comprueba con `claude mcp list` que aparecen `ae` y `premiere-pro`.
 
 ---
 
-## A. Instalarlo (primera vez)
+## A. Instalar el MCP de After Effects (primera vez)
 
 Sigue estos pasos en orden y **verifica cada uno antes de pasar al siguiente**. No des un paso por bueno porque el comando no dio error: comprueba lo que se indica.
 
@@ -65,6 +77,8 @@ Después de registrar hay que **reiniciar Claude** para que las tools aparezcan.
 - `ae_project action=save` después de cada cambio estructural, no sólo al final.
 - Un `ENGINE_BUSY` no es una desconexión: es un diálogo modal abierto en AE. `ae_dialogs action=list` → leer el texto → `ok`/`cancel`.
 - Los renders van por `ae_render` (aerender en segundo plano, verificado con ffprobe). `ae_render_queue action=render` bloquea la interfaz de AE.
+
+**Si la pieza es de Silia, lee antes del primer keyframe `.claude/skills/silia-motion-marca/SKILL.md`**: es el canon de marca (highlight lima, palabra por palabra, orbe vivo, vidrio, fondos, outro, audio) con números exactos, para que todas las piezas salgan iguales sin importar quién las anime. El orbe se renderiza con `.claude/skills/silia-motion-marca/orbe/render-orbe-seq.cjs`.
 
 El flujo completo, las recetas (`silia_lower_third`, `silia_captions`, `silia_outro`, MOGRT → Premiere…) y una tabla larga de gotchas están en el skill **`.claude/skills/ae-motion/SKILL.md`** de este repo, que Claude Code carga solo cuando la tarea menciona After Effects. Los números del motion (duraciones, easings, staggers, legibilidad) están en **`.claude/skills/motion-intelligence/`** y, en vivo, en los recursos `motion://…` del propio servidor.
 

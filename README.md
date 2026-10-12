@@ -1,4 +1,30 @@
-# ae-mcp — After Effects MCP server (Silia)
+# Silia Motion Kit
+
+Kit interno para animar videos y storyboards de **Silia** con Claude, con los mismos resultados en cualquier máquina.
+
+| Qué | Dónde |
+|---|---|
+| MCP de **After Effects** (este repo es el servidor) | `src/`, `cep-plugin/`, `artifacts/` · instalación en [`INSTALL.md`](INSTALL.md) |
+| Guía del MCP de **Premiere Pro** (`premiere-pro-mcp`, de npm) | [`docs/PREMIERE.md`](docs/PREMIERE.md) |
+| **Canon de motion de marca Silia**: highlight, palabra por palabra, orbe vivo, vidrio, fondos, outro, audio | [`.claude/skills/silia-motion-marca/SKILL.md`](.claude/skills/silia-motion-marca/SKILL.md) |
+| Cómo operar AE · números del motion · storyboard → video · QA | `.claude/skills/{ae-motion,motion-intelligence,video-desde-storyboard,revisor-storyboard,auditor-entrega}` |
+| Shader del orbe y su script de render (requiere HyperFrames) | `.claude/skills/silia-motion-marca/orbe/` |
+
+## Empezar (la forma fácil)
+
+1. Clona el repo en una ruta estable. La configuración de Claude va a apuntar ahí:
+   ```bash
+   git clone https://github.com/sbstnmrll/silia-motion-kit.git
+   ```
+2. Cierra After Effects y Premiere por completo.
+3. Abre **Claude Code dentro de la carpeta** y pídele: *"Instala el kit"*. [`CLAUDE.md`](CLAUDE.md) le dice el orden exacto y cómo verificar cada paso: AE, Premiere, skills, HyperFrames y fuentes.
+4. Para actualizar más adelante: `git pull`, luego `npm run build`, y vuelve a copiar las skills a `~/.claude/skills/`.
+
+Las fuentes **ES Klarheit Grotesk** (Book y Medium) no vienen en el repo, porque tienen licencia de la marca. Pídeselas al equipo.
+
+---
+
+## ae-mcp — After Effects MCP server (Silia)
 
 An MCP server that lets Claude (Claude Code, Claude Desktop, or any MCP client) drive Adobe After Effects on Windows or macOS: build comps and layers, animate with proper easing, apply effects by matchName, validate expressions, **see rendered frames**, render in the background with `aerender` and verify the output with ffprobe, export MOGRTs and hand them to the Premiere Pro MCP, and build on-brand Silia elements (lower thirds, titles, word-synced captions, 2.5D pushes, the outro).
 
